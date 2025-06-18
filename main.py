@@ -15,4 +15,4 @@ try:
     Run(app, conn)
 finally:
     app.ExitMainLoop()
-    shutil.rmtree(CONFIG.STORE_TEMPFILES_PATH.as_posix())
+    shutil.rmtree(CONFIG.STORE_TEMPFILES_PATH.as_posix(), ignore_errors=True)
