@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 import os
 
 from dotenv import load_dotenv
@@ -14,3 +15,7 @@ CONFIG = _Config(
     **config_dict,
     APP_SECRET=os.getenv("APP_SECRET")
 )
+
+_store_path_expanded = os.path.expanduser(CONFIG.STORE_LOCATION)
+CONFIG.STORE_LOCATION_PATH = Path(_store_path_expanded)
+CONFIG.STORE_TEMPFILES_PATH = Path(_store_path_expanded).parent / "temp"

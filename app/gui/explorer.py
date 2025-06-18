@@ -11,6 +11,7 @@ from artifactory import ArtifactoryPath
 
 from app.core.config import CONFIG
 from app.services import af as AF
+from app.services import file_handler
 from app.models.af_search_results import AF_Result
 
 
@@ -44,7 +45,7 @@ class FileExplorer(wx.Frame):
         vbox.Add(hbox1, 0, wx.EXPAND)
         
         # File list with drag source support
-        self.file_list = wx.ListCtrl(panel, style=wx.LC_REPORT|wx.BORDER_SUNKEN)
+        self.file_list = wx.ListCtrl(panel, style=wx.LC_REPORT|wx.BORDER_SUNKEN|wx.LC_EDIT_LABELS)
         self.file_list.InsertColumn(0, "Name", width=400)
         self.file_list.InsertColumn(1, "Type", width=70)
         self.file_list.InsertColumn(2, "Size", width=70)
@@ -78,6 +79,8 @@ class FileExplorer(wx.Frame):
         self.paste_button.Bind(wx.EVT_BUTTON, self.on_paste)
         self.delete_button.Bind(wx.EVT_BUTTON, self.on_delete)
         self.file_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_item_activated)
+        self.Bind(wx.EVT_LIST_BEGIN_LABEL_EDIT, self.on_start_rename)
+        self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.on_end_rename)
 
         # Key bindings
         self.file_list.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
@@ -191,11 +194,8 @@ class FileExplorer(wx.Frame):
             self.load_directory()
     
     def _download_file(self, file_conn : ArtifactoryPath, open = False):
-        # Find where we store the creds.json file
-        store_path_expanded = os.path.expanduser(CONFIG.STORE_LOCATION)
-        store_path = Path(store_path_expanded)
         # Make a temp folder if necessary
-        tmp_path = store_path.parent / "temp"
+        tmp_path = CONFIG.STORE_TEMPFILES_PATH
         tmp_path.mkdir(parents=True, exist_ok=True)
         fname = file_conn.name
         tmp_file_path = tmp_path / fname
@@ -292,10 +292,35 @@ class FileExplorer(wx.Frame):
                             "Error", wx.OK|wx.ICON_ERROR)
             self.load_directory()
 
+    def on_start_rename(self, event):
+        if event.GetIndex() == 0:
+            event.Veto()
+        else:
+            event.Skip()
+
+    def on_end_rename(self, event):
+        index = event.GetIndex()
+        old_path = self.items[index - 1]
+        old_name = old_path.name
+        old_af = self.current_dir / old_name
+        new_label = event.GetText()
+        new_af = self.current_dir / new_label
+        if new_label == old_name:
+            return
+        if new_label:
+            old_af.move(new_af)
+            self.load_directory()
+        else:
+            event.Veto() 
+
     def on_key_down(self, event):
         key_code = event.GetKeyCode()
         if key_code == wx.WXK_DELETE:
             self.on_delete(None)
+        elif key_code == wx.WXK_F2:
+            index = self.file_list.GetFirstSelected()
+            if index > 0:
+                self.file_list.EditLabel(index)
         else:
             event.Skip()  # Allow other key events to be processed
 
@@ -310,8 +335,13 @@ class FileDropTarget(wx.FileDropTarget):
         errors = []
         for filepath in filenames:
             try:
-                dest = self.window.current_dir# / os.path.basename(filepath)
-                dest.deploy_file(filepath)
+                dest = self.window.current_dir
+                is_summary = file_handler.check_is_summary_file(filepath)
+                if is_summary:
+                    for file in is_summary:
+                        dest.deploy_file(file)
+                else:
+                    dest.deploy_file(filepath)
             except Exception as e:
                 errors.append(f"{os.path.basename(filepath)}: {str(e)}")
         

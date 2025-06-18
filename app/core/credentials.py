@@ -42,16 +42,14 @@ def _get_store() -> dict:
     Loads the store with the user details.
     Returns an empty dictionary if the store doesn't exist.
     """
-    store_path_expanded = os.path.expanduser(CONFIG.STORE_LOCATION)
-    store_path = Path(store_path_expanded)
+    store_path = CONFIG.STORE_LOCATION_PATH
     if store_path.exists():
         with store_path.open() as f:
             return json.load(f)
     return {}
 
 def _save_store(store : dict):
-    store_path_expanded = os.path.expanduser(CONFIG.STORE_LOCATION)
-    store_path = Path(store_path_expanded)
+    store_path = CONFIG.STORE_LOCATION_PATH
     # Make the folderpath if it doesn't already exist
     store_path.parent.mkdir(parents=True, exist_ok=True)
     with store_path.open(mode="w") as f:
