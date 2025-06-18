@@ -1,5 +1,8 @@
+import shutil
+
 import wx
 
+from app.core.config import CONFIG
 from app.services.login import GetAFConnection
 from app.services.explorer import Run
 
@@ -12,3 +15,4 @@ try:
     Run(app, conn)
 finally:
     app.ExitMainLoop()
+    shutil.rmtree(CONFIG.STORE_TEMPFILES_PATH.as_posix())
