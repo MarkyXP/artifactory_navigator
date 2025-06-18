@@ -5,68 +5,17 @@ import sys
 import tempfile
 import time
 
-class LoginDialog(wx.Dialog):
-    def __init__(self):
-        super().__init__(None, title="Login", size=(300, 200))
-        
-        panel = wx.Panel(self)
-        vbox = wx.BoxSizer(wx.VERTICAL)
-        
-        # Username
-        hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-        user_label = wx.StaticText(panel, label="Username:")
-        self.user_text = wx.TextCtrl(panel)
-        hbox1.Add(user_label, 0, wx.ALL, 5)
-        hbox1.Add(self.user_text, 1, wx.ALL, 5)
-        vbox.Add(hbox1, 0, wx.EXPAND)
-        
-        # Password
-        hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        pass_label = wx.StaticText(panel, label="Password:")
-        self.pass_text = wx.TextCtrl(panel, style=wx.TE_PASSWORD)
-        hbox2.Add(pass_label, 0, wx.ALL, 5)
-        hbox2.Add(self.pass_text, 1, wx.ALL, 5)
-        vbox.Add(hbox2, 0, wx.EXPAND)
-        
-        # Buttons
-        hbox3 = wx.BoxSizer(wx.HORIZONTAL)
-        login_btn = wx.Button(panel, label="Login")
-        cancel_btn = wx.Button(panel, label="Cancel")
-        hbox3.Add(login_btn, 0, wx.ALL, 5)
-        hbox3.Add(cancel_btn, 0, wx.ALL, 5)
-        vbox.Add(hbox3, 0, wx.ALIGN_CENTER)
-        
-        # Events
-        login_btn.Bind(wx.EVT_BUTTON, self.on_login)
-        cancel_btn.Bind(wx.EVT_BUTTON, self.on_cancel)
-        
-        panel.SetSizer(vbox)
-        
-    def on_login(self, event):
-        username = self.user_text.GetValue()
-        password = self.pass_text.GetValue()
-        
-        if username == "admin" and password == "admin":
-            # self.EndModal(wx.ID_OK)
-            # Show the main application
-            # self.EndModal(wx.ID_OK)
-            frame.Close(True)
-            app = wx.GetApp()
-            app.frame = FileExplorer()
-            app.frame.Show()
-        else:
-            wx.MessageBox("Invalid username or password", "Error", wx.OK | wx.ICON_ERROR)
-    
-    def on_cancel(self, event):
-        self.EndModal(wx.ID_CANCEL)
-        wx.GetApp().ExitMainLoop()
+from app.core.config import CONFIG
+from app.services import af as AF
+
+
 
 class FileExplorer(wx.Frame):
     def __init__(self):
-        super().__init__(None, title="Simple File Explorer", size=(800, 600))
+        super().__init__(None, title=CONFIG.APP_NAME, size=(800, 600))
         
         self.current_dir = os.path.expanduser("~")
-        self.current_dir = "c:\python\pyside_tb"
+        self.current_dir = "c:\python"
         self.clipboard = []
         
         self.create_ui()

@@ -1,2 +1,5 @@
 wxpython
-httpx
+requests
+python-dotenv
+cryptography
+dohq-artifactory

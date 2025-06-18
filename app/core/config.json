@@ -1,0 +1,7 @@
+{
+    "APP_NAME" : "Artifactory Navigator",
+    "STORE_LOCATION" : "~/AppData/Local/Artifactory_Navigator/creds.json",
+    "AF_URL" : "https://aumel-artifactory.leicabio.com/artifactory",
+    "AF_PRETTY_URL" : "https://aumel-artifactory.leicabio.com/ui/repos/tree/General",
+    "HTTP_CERT_FNAME" : "Leica Biosystems Melbourne Root CA.cer"
+}
