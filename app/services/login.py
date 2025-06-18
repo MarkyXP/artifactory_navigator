@@ -30,8 +30,9 @@ def GetAFConnection(app : wx.App) -> ArtifactoryPath:
     store_pw = credentials.get_password()
     # Test the username / password
     if store_uname and store_pw:
-        if _test_af_creds(store_uname, store_pw):
-            return store_uname, store_pw
+        conn = _test_af_creds(store_uname, store_pw)
+        if conn:
+            return conn
     # If the username / password are wrong, as the user for it
     def login_dialog_completed(
             set_uname : str,

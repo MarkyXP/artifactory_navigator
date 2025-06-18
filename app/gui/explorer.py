@@ -5,17 +5,19 @@ import sys
 import tempfile
 import time
 
+from artifactory import ArtifactoryPath
+
 from app.core.config import CONFIG
 from app.services import af as AF
 
 
 
 class FileExplorer(wx.Frame):
-    def __init__(self):
+    def __init__(self, af_conn : ArtifactoryPath):
         super().__init__(None, title=CONFIG.APP_NAME, size=(800, 600))
         
-        self.current_dir = os.path.expanduser("~")
-        self.current_dir = "c:\python"
+        self.conn = af_conn
+        self.current_dir : ArtifactoryPath = self.conn.get_repositories()[33].path
         self.clipboard = []
         
         self.create_ui()
@@ -95,33 +97,35 @@ class FileExplorer(wx.Frame):
     def load_directory(self):
         """Load the contents of the current directory into the list"""
         self.file_list.DeleteAllItems()
-        self.dir_text.SetValue(self.current_dir)
+        self.dir_text.SetValue(self.current_dir.name)
         
         # Add parent directory entry
-        parent_dir = os.path.dirname(self.current_dir)
-        if parent_dir != self.current_dir:  # Not at root
-            index = self.file_list.InsertItem(0, "..")
-            self.file_list.SetItem(index, 1, "Parent Directory")
-            self.file_list.SetItem(index, 2, "")
+        # parent_dir = os.path.dirname(self.current_dir)
+        # if parent_dir != self.current_dir:  # Not at root
+        #     index = self.file_list.InsertItem(0, "..")
+        #     self.file_list.SetItem(index, 1, "Parent Directory")
+        #     self.file_list.SetItem(index, 2, "")
         
         # Add files and directories
         try:
-            items = os.listdir(self.current_dir)
-            items.sort(key=lambda x: (not os.path.isdir(os.path.join(self.current_dir, x)), x.lower()))
+            # items = self.current_dir
+            # items.sort(key=lambda x: (not os.path.isdir(os.path.join(self.current_dir, x)), x.lower()))
             
-            for i, item in enumerate(items):
-                full_path = os.path.join(self.current_dir, item)
-                index = self.file_list.InsertItem(i + 1, item)
+            for i, item in enumerate(self.current_dir.iterdir()):
+                # full_path = os.path.join(self.current_dir, item)
+                full_path = item.as_posix()
+                index = self.file_list.InsertItem(i + 1, item.name)
                 
-                if os.path.isdir(full_path):
+                if item.is_dir():
                     self.file_list.SetItem(index, 1, "Directory")
                     self.file_list.SetItem(index, 2, "")
                 else:
                     self.file_list.SetItem(index, 1, "File")
-                    size = os.path.getsize(full_path)
+                    size = item.stat().size
                     self.file_list.SetItem(index, 2, self.format_size(size))
         except Exception as e:
             wx.MessageBox(f"Error reading directory: {str(e)}", "Error", wx.OK|wx.ICON_ERROR)
+        pass
     
     def format_size(self, size):
         """Format file size in human-readable format"""
@@ -270,9 +274,3 @@ class FileDropTarget(wx.FileDropTarget):
         self.window.load_directory()
         return True
 
-
-if __name__ == "__main__":
-    app = wx.App(False)
-    frame = LoginDialog()
-    frame.Show()
-    app.MainLoop()

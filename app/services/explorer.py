@@ -10,7 +10,8 @@ _uname = ""
 _pw = ""
 
 def Run(app : wx.App, af_conn : ArtifactoryPath):
-    frame = FileExplorer()
+    # initial_folders = af_conn.get_repositories()
+    frame = FileExplorer(af_conn)
     frame.Show()
     app.MainLoop()
     if _uname and _pw:
