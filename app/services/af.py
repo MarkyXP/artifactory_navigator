@@ -1,20 +1,9 @@
-from dataclasses import dataclass
+# https://leap.jfrog.com/rs/256-FNZ-187/images/AQL_Ref_Cards_Downloadable.pdf
 
 from artifactory import ArtifactoryPath
-import dohq_artifactory
 from requests import Session
 
 from app.core.config import CONFIG
-
-@dataclass
-class AF_File():
-    repo: str
-    path: str
-    name: str
-    size: int
-    modified: str
-    updated: str
-    sha256: str
 
 def get_af_conn(username : str, password : str) -> ArtifactoryPath:
     # cert = getcwd()+"\\Leica Biosystems Melbourne Root CA.cer"
@@ -25,19 +14,35 @@ def get_af_conn(username : str, password : str) -> ArtifactoryPath:
     connection = ArtifactoryPath(CONFIG.AF_URL, verify=cert, session=session)
     return connection
 
-def get_search_args(repo_name : str, last_update_time : str):
-    args = [{"repo": repo_name}, {"type": "file"},]
-    if last_update_time:
-        args.append({"modified": {"$gt": last_update_time}})
+def open(conn : ArtifactoryPath, url : str) -> ArtifactoryPath:
+    existing_session = conn.session
+    existing_cert = conn.verify
+    new_conn = ArtifactoryPath(
+        url,
+        verify = existing_cert,
+        session = existing_session
+    )
+    return new_conn
+
+def get_search_args(repo_name : str, foldername : str):
+    args = {
+        "$and" : [
+            {"$or" :
+                [
+                    {"type" : "file"},
+                    {"type" : "folder"}
+                ]
+            },
+            {"repo" : repo_name},
+            {"path" : {"$match":foldername}}
+        ]
+    }
     aqlargs = [
-        "items.find",
-        {
-            "$and": args
-        },
+        "items.find",args,
         ".include",
-        ["repo", "path", "name", "size", "sha256", "modified", "updated"],
+        ["repo", "path", "name", "size", "sha256", "modified", "updated", "created_by", "modified_by", "type"],
         ".sort",
-        {"$asc": ["updated"]},
+        {"$asc": ["name"]}
     ]
     return aqlargs
 

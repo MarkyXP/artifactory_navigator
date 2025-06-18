@@ -4,11 +4,14 @@ import shutil
 import sys
 import tempfile
 import time
+from pathlib import Path
+from typing import List
 
 from artifactory import ArtifactoryPath
 
 from app.core.config import CONFIG
 from app.services import af as AF
+from app.models.af_search_results import AF_Result
 
 
 
@@ -18,10 +21,14 @@ class FileExplorer(wx.Frame):
         
         self.conn = af_conn
         self.current_dir : ArtifactoryPath = self.conn.get_repositories()[33].path
+        self.current_dir = AF.open(
+            self.conn, CONFIG.AF_URL + "/ddc-dhfr-wip-prod-mel"
+        )
         self.clipboard = []
         
         self.create_ui()
         self.file_list.SetDropTarget(FileDropTarget(self))
+        self.items = []
         self.load_directory()
     
     def create_ui(self):
@@ -38,9 +45,13 @@ class FileExplorer(wx.Frame):
         
         # File list with drag source support
         self.file_list = wx.ListCtrl(panel, style=wx.LC_REPORT|wx.BORDER_SUNKEN)
-        self.file_list.InsertColumn(0, "Name", width=200)
-        self.file_list.InsertColumn(1, "Type", width=100)
-        self.file_list.InsertColumn(2, "Size", width=100)
+        self.file_list.InsertColumn(0, "Name", width=400)
+        self.file_list.InsertColumn(1, "Type", width=70)
+        self.file_list.InsertColumn(2, "Size", width=70)
+        self.file_list.InsertColumn(3, "Date Modified", width=100)
+        self.file_list.InsertColumn(4, "Date Updated", width=100)
+        self.file_list.InsertColumn(5, "Deployed By", width=135)
+        self.file_list.InsertColumn(6, "Sha256", width=100)
         
         # Make the list a drag source
         self.file_list.Bind(wx.EVT_LIST_BEGIN_DRAG, self.on_begin_drag)
@@ -62,12 +73,14 @@ class FileExplorer(wx.Frame):
         vbox.Add(hbox2, 0, wx.ALIGN_CENTER)
         
         # Event bindings
-        self.up_button.Bind(wx.EVT_BUTTON, self.on_up)
         self.open_button.Bind(wx.EVT_BUTTON, self.on_open)
         self.copy_button.Bind(wx.EVT_BUTTON, self.on_copy)
         self.paste_button.Bind(wx.EVT_BUTTON, self.on_paste)
         self.delete_button.Bind(wx.EVT_BUTTON, self.on_delete)
         self.file_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_item_activated)
+
+        # Key bindings
+        self.file_list.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         
         panel.SetSizer(vbox)
     
@@ -97,45 +110,62 @@ class FileExplorer(wx.Frame):
     def load_directory(self):
         """Load the contents of the current directory into the list"""
         self.file_list.DeleteAllItems()
-        self.dir_text.SetValue(self.current_dir.name)
-        
+        curr_foldername = self.current_dir.repo + self.current_dir.path_in_repo
+        self.dir_text.SetValue(curr_foldername)
+        path_in_repo = self.current_dir.path_in_repo[1:] or "."
+        items_dict = self.conn.aql(
+            *AF.get_search_args(
+                repo_name = self.current_dir.repo,
+                foldername = path_in_repo
+            )
+        )
+        pass
+        self.items = [
+            AF_Result(**item)
+            for item in items_dict
+            if not item["name"] == "."
+        ]
+        self.items.sort(key=lambda f: f.type, reverse=True)
         # Add parent directory entry
-        # parent_dir = os.path.dirname(self.current_dir)
-        # if parent_dir != self.current_dir:  # Not at root
-        #     index = self.file_list.InsertItem(0, "..")
-        #     self.file_list.SetItem(index, 1, "Parent Directory")
-        #     self.file_list.SetItem(index, 2, "")
-        
+        parent_dir = self.current_dir.parent
+        if parent_dir.as_posix() != self.current_dir.as_posix():  # Not at root
+            index = self.file_list.InsertItem(0, "..")
+            self.file_list.SetItem(index, 1, "Parent Directory")
+            self.file_list.SetItem(index, 2, "")
+            self.file_list.SetItem(index, 3, "")
+            self.file_list.SetItem(index, 4, "")
+            self.file_list.SetItem(index, 5, "")
+            self.file_list.SetItem(index, 6, "")
         # Add files and directories
         try:
-            # items = self.current_dir
-            # items.sort(key=lambda x: (not os.path.isdir(os.path.join(self.current_dir, x)), x.lower()))
-            
-            for i, item in enumerate(self.current_dir.iterdir()):
-                # full_path = os.path.join(self.current_dir, item)
-                full_path = item.as_posix()
+            for i, item in enumerate(self.items):
+                # Item 0 - Name
                 index = self.file_list.InsertItem(i + 1, item.name)
-                
-                if item.is_dir():
+                if item.sha256 == None:
                     self.file_list.SetItem(index, 1, "Directory")
-                    self.file_list.SetItem(index, 2, "")
                 else:
                     self.file_list.SetItem(index, 1, "File")
-                    size = item.stat().size
-                    self.file_list.SetItem(index, 2, self.format_size(size))
+                size = item.size
+                self.file_list.SetItem(index, 2, self.format_size(size))
+                self.file_list.SetItem(index, 3, item.modified)
+                self.file_list.SetItem(index, 4, item.updated)
+                self.file_list.SetItem(index, 5, item.modified_by or item.created_by or "")
+                self.file_list.SetItem(index, 6, item.sha256 or "")
         except Exception as e:
             wx.MessageBox(f"Error reading directory: {str(e)}", "Error", wx.OK|wx.ICON_ERROR)
         pass
     
     def format_size(self, size):
         """Format file size in human-readable format"""
+        if size == 0:
+            return ""
         for unit in ['B', 'KB', 'MB', 'GB']:
             if size < 1024.0:
                 return f"{size:.1f} {unit}"
             size /= 1024.0
         return f"{size:.1f} TB"
     
-    def get_selected_paths(self):
+    def get_selected_paths(self) -> List[AF_Result]:
         """Get the full paths of all selected items"""
         selected_paths = []
         index = self.file_list.GetFirstSelected()
@@ -143,9 +173,12 @@ class FileExplorer(wx.Frame):
         while index != -1:
             item_text = self.file_list.GetItemText(index)
             if item_text == "..":
-                selected_paths.append(os.path.dirname(self.current_dir))
+                selected_paths.append("..")
             else:
-                selected_paths.append(os.path.join(self.current_dir, item_text))
+                # selected_paths.append(os.path.join(self.current_dir, item_text))
+                selected_paths.append(
+                    self.items[index-1]
+                )
             index = self.file_list.GetNextSelected(index)
         
         return selected_paths if selected_paths else None
@@ -157,6 +190,20 @@ class FileExplorer(wx.Frame):
             self.current_dir = parent_dir
             self.load_directory()
     
+    def _download_file(self, file_conn : ArtifactoryPath, open = False):
+        # Find where we store the creds.json file
+        store_path_expanded = os.path.expanduser(CONFIG.STORE_LOCATION)
+        store_path = Path(store_path_expanded)
+        # Make a temp folder if necessary
+        tmp_path = store_path.parent / "temp"
+        tmp_path.mkdir(parents=True, exist_ok=True)
+        fname = file_conn.name
+        tmp_file_path = tmp_path / fname
+        with tmp_file_path.open(mode="wb") as f:
+            file_conn.writeto(f, chunk_size=256)
+        if open:
+            os.startfile(tmp_file_path.as_posix())  # Works on Windows
+
     def on_open(self, event):
         """Open selected file or directory (only works with single selection)"""
         paths = self.get_selected_paths()
@@ -165,22 +212,24 @@ class FileExplorer(wx.Frame):
             return
         
         path = paths[0]
-        if os.path.isdir(path):
-            self.current_dir = path
+        if path == "..":
+            self.current_dir = self.current_dir.parent
+            self.load_directory()
+        elif path.type == "folder":
+            # Go back a directory
+            if path.name == ".":
+                new_dir = self.current_dir.parent
+            # Open the new directory
+            else:
+                new_path =  self.current_dir.as_posix() + "/" + path.name
+                new_dir = AF.open(self.conn, new_path)
+            self.current_dir = new_dir
             self.load_directory()
         else:
-            try:
-                os.startfile(path)  # Works on Windows
-            except:
-                try:
-                    # Try other platforms
-                    import subprocess
-                    if sys.platform == 'darwin':
-                        subprocess.call(('open', path))
-                    else:
-                        subprocess.call(('xdg-open', path))
-                except:
-                    wx.MessageBox(f"Could not open file: {path}", "Error", wx.OK|wx.ICON_ERROR)
+            file_path_str =  self.current_dir.as_posix() + "/" + path.name
+            af_file = AF.open(self.conn, file_path_str)
+            self._download_file(af_file, open = True)
+            return
     
     def on_item_activated(self, event):
         """Handle double-click on item"""
@@ -220,26 +269,21 @@ class FileExplorer(wx.Frame):
     def on_delete(self, event):
         """Delete selected files"""
         paths = self.get_selected_paths()
+        # Filter out parent directory if selected
+        paths = [p for p in paths if isinstance(p, AF_Result)]
         if not paths:
             wx.MessageBox("Please select one or more files/directories first.", "Info", wx.OK|wx.ICON_INFORMATION)
             return
         
-        # Filter out parent directory if selected
-        paths = [p for p in paths if not p.endswith("..")]
-        if not paths:
-            return
-        
-        names = ", ".join([os.path.basename(p) for p in paths])
+        names = ", ".join([p.name for p in paths])
         confirm = wx.MessageBox(f"Are you sure you want to delete {len(paths)} items?\n{names}", 
                               "Confirm Delete", wx.YES_NO|wx.ICON_QUESTION)
         if confirm == wx.YES:
             errors = []
             for path in paths:
                 try:
-                    if os.path.isdir(path):
-                        shutil.rmtree(path)
-                    else:
-                        os.remove(path)
+                    file_to_delete = AF.open(self.conn, self.current_dir.as_posix() + "/" + path.name)
+                    file_to_delete.unlink()
                 except Exception as e:
                     errors.append(f"{os.path.basename(path)}: {str(e)}")
             
@@ -247,6 +291,13 @@ class FileExplorer(wx.Frame):
                 wx.MessageBox("Errors occurred while deleting:\n" + "\n".join(errors), 
                             "Error", wx.OK|wx.ICON_ERROR)
             self.load_directory()
+
+    def on_key_down(self, event):
+        key_code = event.GetKeyCode()
+        if key_code == wx.WXK_DELETE:
+            self.on_delete(None)
+        else:
+            event.Skip()  # Allow other key events to be processed
 
 class FileDropTarget(wx.FileDropTarget):
     """Handles both drag-in and drag-out operations"""
@@ -259,11 +310,8 @@ class FileDropTarget(wx.FileDropTarget):
         errors = []
         for filepath in filenames:
             try:
-                dest = os.path.join(self.window.current_dir, os.path.basename(filepath))
-                if os.path.isdir(filepath):
-                    shutil.copytree(filepath, dest)
-                else:
-                    shutil.copy2(filepath, dest)
+                dest = self.window.current_dir# / os.path.basename(filepath)
+                dest.deploy_file(filepath)
             except Exception as e:
                 errors.append(f"{os.path.basename(filepath)}: {str(e)}")
         
