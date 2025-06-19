@@ -1,5 +1,7 @@
+import threading
 import uuid
 import warnings
+from functools import wraps
 
 from azure.cosmos import CosmosClient
 from requests import Session
@@ -22,12 +24,20 @@ _msg_count = 0
 _disable_logging = False
 _auth_acquired = False
 
+def run_in_background(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        thread = threading.Thread(target=func, args=args, kwargs=kwargs, daemon=True)
+        thread.start()
+        return thread  # optionally return the thread if you want to check status
+    return wrapper
+
 def set_auth(username : str, pw : str):
     global _auth_acquired
     _session.auth = (username, pw)
     _auth_acquired = True
 
-
+@run_in_background
 def log(msg : str):
     global _msg_count, _disable_logging, _auth_acquired
     if _disable_logging:

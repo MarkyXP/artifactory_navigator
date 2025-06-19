@@ -1,6 +1,5 @@
 import wx
 import os
-import shutil
 from pathlib import Path
 from typing import List
 
@@ -10,18 +9,20 @@ from app.core.config import CONFIG
 from app.core.telemetry import log
 from app.services import af as AF
 from app.services import file_handler
-from app.models.af_search_results import AF_Result
+from app.models.af_search_results import AF_Result, AF_Repo
 
 
 
 class FileExplorer(wx.Frame):
     def __init__(self, af_conn : ArtifactoryPath):
         super().__init__(None, title=CONFIG.APP_NAME, size=(800, 600))
+        icon = wx.Icon("Assets/LBS_AF_Logo.ico", wx.BITMAP_TYPE_ICO)
+        self.SetIcon(icon)
         
         self.conn = af_conn
         self.current_dir : ArtifactoryPath = self.conn.get_repositories()[33].path
         self.current_dir = AF.open(
-            self.conn, CONFIG.AF_URL + "/ddc-dhfr-wip-prod-mel"
+            self.conn, CONFIG.AF_URL# + "/ddc-dhfr-wip-prod-mel"
         )
         self.clipboard = []
         
@@ -111,21 +112,35 @@ class FileExplorer(wx.Frame):
     def load_directory(self):
         """Load the contents of the current directory into the list"""
         self.file_list.DeleteAllItems()
-        curr_foldername = self.current_dir.repo + self.current_dir.path_in_repo
-        self.dir_text.SetValue(curr_foldername)
-        path_in_repo = self.current_dir.path_in_repo[1:] or "."
-        items_dict = self.conn.aql(
-            *AF.get_search_args(
-                repo_name = self.current_dir.repo,
-                foldername = path_in_repo
+        try:
+            curr_foldername = "/" + self.current_dir.repo + self.current_dir.path_in_repo
+            self.dir_text.SetValue(curr_foldername)
+            path_in_repo = self.current_dir.path_in_repo[1:] or "."
+            items_dict = self.conn.aql(
+                *AF.get_search_args(
+                    repo_name = self.current_dir.repo,
+                    foldername = path_in_repo
+                )
             )
-        )
+            self.items = [
+                AF_Result(**item)
+                for item in items_dict
+                if not item["name"] == "."
+            ]
+            self.selecting_offset = -1
+        except:
+            repo_list = self.conn.get_repositories()
+            self.dir_text.SetValue("/")
+            self.items = [
+                AF_Repo(
+                    repo = repo.name,
+                    path = repo.name,
+                    name = repo.name
+                )
+                for repo in repo_list
+            ]
+            self.selecting_offset = 0
         pass
-        self.items = [
-            AF_Result(**item)
-            for item in items_dict
-            if not item["name"] == "."
-        ]
         self.items.sort(key=lambda f: f.type, reverse=True)
         # Add parent directory entry
         parent_dir = self.current_dir.parent
@@ -178,7 +193,7 @@ class FileExplorer(wx.Frame):
             else:
                 # selected_paths.append(os.path.join(self.current_dir, item_text))
                 selected_paths.append(
-                    self.items[index-1]
+                    self.items[index + self.selecting_offset]
                 )
             index = self.file_list.GetNextSelected(index)
         
@@ -186,7 +201,8 @@ class FileExplorer(wx.Frame):
     
     def on_up(self, event):
         """Navigate to parent directory"""
-        parent_dir = os.path.dirname(self.current_dir)
+        # parent_dir = os.path.dirname(self.current_dir)
+        parent_dir = self.current_dir.parent
         if parent_dir != self.current_dir:  # Not at root
             self.current_dir = parent_dir
             self.load_directory()
@@ -212,8 +228,7 @@ class FileExplorer(wx.Frame):
         
         path = paths[0]
         if path == "..":
-            self.current_dir = self.current_dir.parent
-            self.load_directory()
+            self.on_up(None)
         elif path.type == "folder":
             # Go back a directory
             if path.name == ".":
@@ -323,6 +338,7 @@ class FileExplorer(wx.Frame):
     def on_key_down(self, event):
         key_code = event.GetKeyCode()
         control_down = event.ControlDown()
+        alt_down = event.AltDown()
         if key_code == wx.WXK_DELETE:
             self.on_delete(None)
         elif key_code == wx.WXK_F2:
@@ -333,6 +349,8 @@ class FileExplorer(wx.Frame):
             self.on_copy(None, False)
         elif control_down and key_code == ord("V"):
             self.on_paste(None)
+        elif alt_down and wx.WXK_LEFT:
+            self.on_up(None)
         else:
             event.Skip()  # Allow other key events to be processed
 
