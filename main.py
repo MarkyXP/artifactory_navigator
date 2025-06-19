@@ -3,8 +3,8 @@ import shutil
 import wx
 
 from app.core.config import CONFIG
-from app.services.login import GetAFConnection
 from app.services.explorer import Run
+from app.services.login import GetAFConnection
 
 app = wx.App(False)
 conn = GetAFConnection(app)

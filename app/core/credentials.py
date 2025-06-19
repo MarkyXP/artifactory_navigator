@@ -45,7 +45,11 @@ def _get_store() -> dict:
     store_path = CONFIG.STORE_LOCATION_PATH
     if store_path.exists():
         with store_path.open() as f:
-            return json.load(f)
+            try:
+                return json.load(f)
+            except:
+                # The file has been corrupted
+                return {}
     return {}
 
 def _save_store(store : dict):
@@ -78,7 +82,10 @@ def get_password() -> str:
     """
     store = _get_store()
     if "pass" in store:
-        return _fernet.decrypt(store["pass"].encode())
+        try:
+            return _fernet.decrypt(store["pass"].encode())
+        except:  # PW Corrupted
+            return ""
     return ""
 
 def set_password(pw : str) -> None:

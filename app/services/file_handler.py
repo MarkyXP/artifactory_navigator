@@ -1,7 +1,10 @@
 import pathlib
 import shutil
+import subprocess
 import zipfile
 from typing import List
+
+from artifactory import ArtifactoryPath
 
 from app.core.config import CONFIG
 
@@ -28,6 +31,8 @@ def check_is_summary_file(src : pathlib.Path | str):
         src = pathlib.Path(src)
     if not src.exists():
         return False
+    if not _is_zip(src):
+        return
     contents = unzip(src)
     if len(contents) != 2:
         return False
@@ -41,3 +46,34 @@ def check_is_summary_file(src : pathlib.Path | str):
     return (
         signed_doc, new_summary_doc
     )
+
+def get_clipboard_file_paths() -> List[pathlib.Path]:
+    ps_command = (
+        'Add-Type -AssemblyName PresentationCore; '
+        '[Windows.Clipboard]::GetFileDropList() -join "`n"'
+    )
+    result = subprocess.run(
+        ['powershell', '-NoProfile', '-Command', ps_command],
+        capture_output=True,
+        text=True
+    )
+    paths = result.stdout.strip().splitlines()
+    return [pathlib.Path(path) for path in paths]
+
+def upload_formatted_files(files : List[pathlib.Path], dest_folder : ArtifactoryPath) -> List[str]:
+    """
+    Unzips files that need to be unzipped, etc
+    returns any errors
+    """
+    errors = []
+    for filepath in files:
+        try:
+            is_summary = check_is_summary_file(filepath)
+            if is_summary:
+                for file in is_summary:
+                    dest_folder.deploy_file(file.as_posix())
+            else:
+                dest_folder.deploy_file(filepath.as_posix())
+        except Exception as e:
+            errors.append(f"{filepath.name}: {str(e)}")
+    return errors

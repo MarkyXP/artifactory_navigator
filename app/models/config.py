@@ -8,6 +8,10 @@ class Config:
     AF_URL : str
     AF_PRETTY_URL : str
     HTTP_CERT_FNAME : str
+    AZURE_COSMOS_ENDPOINT : str
+    AZURE_COSMOS_KEY : str
+    AZURE_COSMOS_DATABASE_ID : str
+    AZURE_COSMOS_CONTAINER_ID : str
     STORE_LOCATION: str
     STORE_LOCATION_PATH : Path | None = None
     STORE_TEMPFILES_PATH : Path | None = None

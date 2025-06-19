@@ -1,15 +1,13 @@
 import wx
 import os
 import shutil
-import sys
-import tempfile
-import time
 from pathlib import Path
 from typing import List
 
 from artifactory import ArtifactoryPath
 
 from app.core.config import CONFIG
+from app.core.telemetry import log
 from app.services import af as AF
 from app.services import file_handler
 from app.models.af_search_results import AF_Result
@@ -29,7 +27,7 @@ class FileExplorer(wx.Frame):
         
         self.create_ui()
         self.file_list.SetDropTarget(FileDropTarget(self))
-        self.items = []
+        self.items : List[AF_Result] = []
         self.load_directory()
     
     def create_ui(self):
@@ -193,7 +191,7 @@ class FileExplorer(wx.Frame):
             self.current_dir = parent_dir
             self.load_directory()
     
-    def _download_file(self, file_conn : ArtifactoryPath, open = False):
+    def _download_file(self, file_conn : ArtifactoryPath, open = False) -> Path:
         # Make a temp folder if necessary
         tmp_path = CONFIG.STORE_TEMPFILES_PATH
         tmp_path.mkdir(parents=True, exist_ok=True)
@@ -202,7 +200,8 @@ class FileExplorer(wx.Frame):
         with tmp_file_path.open(mode="wb") as f:
             file_conn.writeto(f, chunk_size=256)
         if open:
-            os.startfile(tmp_file_path.as_posix())  # Works on Windows
+            os.startfile(tmp_file_path.as_posix())
+        return tmp_file_path
 
     def on_open(self, event):
         """Open selected file or directory (only works with single selection)"""
@@ -229,42 +228,48 @@ class FileExplorer(wx.Frame):
             file_path_str =  self.current_dir.as_posix() + "/" + path.name
             af_file = AF.open(self.conn, file_path_str)
             self._download_file(af_file, open = True)
+            log("File downloaded for preview")
             return
     
     def on_item_activated(self, event):
         """Handle double-click on item"""
         self.on_open(event)
     
-    def on_copy(self, event):
+    def on_copy(self, event, show_feedback = True):
         """Copy selected files to clipboard"""
-        import os
-        paths = self.get_selected_paths()
-        if not paths:
+        af_paths = self.get_selected_paths()
+        if not af_paths:
             wx.MessageBox("Please select one or more files/directories first.", "Info", wx.OK|wx.ICON_INFORMATION)
             return
-        
-        self.clipboard = paths
-        names = ", ".join([os.path.basename(p) for p in paths])
-        command = f"powershell Set-Clipboard -LiteralPath {names}"
+        local_paths = [self._download_file(self.current_dir / path.name) for path in af_paths]
+        self.clipboard = local_paths
+        local_path_strings = ", ".join([f"'{f.as_posix()}'" for f in local_paths])
+        file_names = ", ".join([f.name for f in local_paths])
+        no_files_copied = len(local_paths)
+        command = f"powershell Set-Clipboard -LiteralPath {local_path_strings}"
         os.system(command)
-        wx.MessageBox(f"Copied {len(paths)} items: {names}", "Info", wx.OK|wx.ICON_INFORMATION)
+        if show_feedback:
+            wx.MessageBox(f"Copied {no_files_copied} items: {file_names}", "Info", wx.OK|wx.ICON_INFORMATION)
+        log(f"Files copied to clipboard - {no_files_copied}")
     
     def on_paste(self, event):
         """Paste files from clipboard to current directory"""
-        if not self.clipboard:
+        files = file_handler.get_clipboard_file_paths()
+        if not files:
             wx.MessageBox("No files in clipboard to paste.", "Info", wx.OK|wx.ICON_INFORMATION)
             return
-        
-        try:
-            for src in self.clipboard:
-                dest = os.path.join(self.current_dir, os.path.basename(src))
-                if os.path.isdir(src):
-                    shutil.copytree(src, dest)
-                else:
-                    shutil.copy2(src, dest)
-            self.load_directory()
-        except Exception as e:
-            wx.MessageBox(f"Error pasting files: {str(e)}", "Error", wx.OK|wx.ICON_ERROR)
+        errors = file_handler.upload_formatted_files(
+            files,
+            self.current_dir
+        )
+        log(f"Files uploaded - {len(files)}")
+        self.load_directory()
+        if errors:
+            wx.MessageBox(
+                "Errors occurred while copying:\n" + "\n".join(errors),
+                "Error",
+                wx.OK|wx.ICON_ERROR
+            )
     
     def on_delete(self, event):
         """Delete selected files"""
@@ -291,6 +296,7 @@ class FileExplorer(wx.Frame):
                 wx.MessageBox("Errors occurred while deleting:\n" + "\n".join(errors), 
                             "Error", wx.OK|wx.ICON_ERROR)
             self.load_directory()
+            log(f"Deleted files - {len(paths)}")
 
     def on_start_rename(self, event):
         if event.GetIndex() == 0:
@@ -309,18 +315,24 @@ class FileExplorer(wx.Frame):
             return
         if new_label:
             old_af.move(new_af)
+            log("File renamed")
             self.load_directory()
         else:
             event.Veto() 
 
     def on_key_down(self, event):
         key_code = event.GetKeyCode()
+        control_down = event.ControlDown()
         if key_code == wx.WXK_DELETE:
             self.on_delete(None)
         elif key_code == wx.WXK_F2:
             index = self.file_list.GetFirstSelected()
             if index > 0:
                 self.file_list.EditLabel(index)
+        elif control_down and key_code == ord("C"):
+            self.on_copy(None, False)
+        elif control_down and key_code == ord("V"):
+            self.on_paste(None)
         else:
             event.Skip()  # Allow other key events to be processed
 
@@ -332,23 +344,13 @@ class FileDropTarget(wx.FileDropTarget):
     
     def OnDropFiles(self, x, y, filenames):
         """Handle files dropped into the window"""
-        errors = []
-        for filepath in filenames:
-            try:
-                dest = self.window.current_dir
-                is_summary = file_handler.check_is_summary_file(filepath)
-                if is_summary:
-                    for file in is_summary:
-                        dest.deploy_file(file)
-                else:
-                    dest.deploy_file(filepath)
-            except Exception as e:
-                errors.append(f"{os.path.basename(filepath)}: {str(e)}")
-        
+        errors = file_handler.upload_formatted_files(
+            [Path(f) for f in filenames], self.window.current_dir
+        )
         if errors:
             wx.MessageBox("Errors occurred while copying:\n" + "\n".join(errors), 
                         "Error", wx.OK|wx.ICON_ERROR)
-        
         self.window.load_directory()
+        log(f"Files uploaded - {len(filenames)}")
         return True
 
