@@ -8,21 +8,24 @@ from requests import Session
 
 from app.core.config import CONFIG
 
-_client = CosmosClient(
-    url = CONFIG.AZURE_COSMOS_ENDPOINT,
-    credential = CONFIG.AZURE_COSMOS_KEY,
-    connection_verify = False
-)
-_session = Session()
-_session.verify = CONFIG.HTTP_CERT_FNAME
-_client.session = _session
-
-_database = _client.get_database_client(CONFIG.AZURE_COSMOS_DATABASE_ID)
-_container = _database.get_container_client(CONFIG.AZURE_COSMOS_CONTAINER_ID)
-_session_id = str(uuid.uuid4())
-_msg_count = 0
 _disable_logging = False
 _auth_acquired = False
+try:
+    _client = CosmosClient(
+        url = CONFIG.AZURE_COSMOS_ENDPOINT,
+        credential = CONFIG.AZURE_COSMOS_KEY,
+        connection_verify = False
+    )
+    _session = Session()
+    _session.verify = CONFIG.HTTP_CERT_FNAME
+    _client.session = _session
+
+    _database = _client.get_database_client(CONFIG.AZURE_COSMOS_DATABASE_ID)
+    _container = _database.get_container_client(CONFIG.AZURE_COSMOS_CONTAINER_ID)
+    _session_id = str(uuid.uuid4())
+    _msg_count = 0
+except Exception as e:
+    _disable_logging = True
 
 def run_in_background(func):
     @wraps(func)

@@ -15,3 +15,4 @@ class Config:
     STORE_LOCATION: str
     STORE_LOCATION_PATH : Path | None = None
     STORE_TEMPFILES_PATH : Path | None = None
+    ICON_LOCATION : str | None = None

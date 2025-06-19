@@ -4,7 +4,7 @@ from app.core.config import CONFIG
 class LoginDialog(wx.Dialog):
     def __init__(self, default_username : str, callback_on_complete, test_af_creds):
         super().__init__(None, title=CONFIG.APP_NAME, size=(300, 200))
-        icon = wx.Icon("Assets/LBS_AF_Logo.ico", wx.BITMAP_TYPE_ICO)
+        icon = wx.Icon(CONFIG.ICON_LOCATION, wx.BITMAP_TYPE_ICO)
         self.SetIcon(icon)
         
         panel = wx.Panel(self)

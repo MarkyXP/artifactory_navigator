@@ -16,7 +16,7 @@ from app.models.af_search_results import AF_Result, AF_Repo
 class FileExplorer(wx.Frame):
     def __init__(self, af_conn : ArtifactoryPath):
         super().__init__(None, title=CONFIG.APP_NAME, size=(800, 600))
-        icon = wx.Icon("Assets/LBS_AF_Logo.ico", wx.BITMAP_TYPE_ICO)
+        icon = wx.Icon(CONFIG.ICON_LOCATION, wx.BITMAP_TYPE_ICO)
         self.SetIcon(icon)
         
         self.conn = af_conn
@@ -364,13 +364,13 @@ class FileExplorer(wx.Frame):
             index = self.file_list.GetFirstSelected()
             if index > 0:
                 self.file_list.EditLabel(index)
-        elif control_down and key_code == ord("C"):
+        elif control_down and (key_code == ord("C")):
             self.on_copy(None, False)
-        elif control_down and key_code == ord("V"):
+        elif control_down and (key_code == ord("V")):
             self.on_paste(None)
-        elif alt_down and key_code == wx.WXK_LEFT:
+        elif alt_down and (key_code == wx.WXK_LEFT):
             self.on_up(None)
-        elif control_down and shift_down and key_code == ord("N"):
+        elif control_down and shift_down and (key_code == ord("N")):
             self.start_make_folder()
         else:
             event.Skip()  # Allow other key events to be processed

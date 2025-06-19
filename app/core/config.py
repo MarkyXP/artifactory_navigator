@@ -1,13 +1,23 @@
 import json
 import os
 import pathlib
+import sys
 
 from dotenv import load_dotenv
 
 from app.models.config import Config as _Config
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 # Load the secrets
-load_dotenv()
+load_dotenv(dotenv_path=resource_path(".env"))
 
 # Load the config file
 possible_config_locations = [
@@ -29,8 +39,9 @@ if not config_found:
 
 CONFIG = _Config(
     **config_dict,
-    APP_SECRET=os.getenv("APP_SECRET"),
-    AZURE_COSMOS_KEY = os.getenv("AZURE_COSMOS_KEY")
+    APP_SECRET = os.getenv("APP_SECRET"),
+    AZURE_COSMOS_KEY = os.getenv("AZURE_COSMOS_KEY"),
+    ICON_LOCATION= resource_path("Assets/LBS_AF_Logo.ico")
 )
 
 # Make some nice pathlib paths
