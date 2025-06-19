@@ -77,3 +77,6 @@ def upload_formatted_files(files : List[pathlib.Path], dest_folder : Artifactory
         except Exception as e:
             errors.append(f"{filepath.name}: {str(e)}")
     return errors
+
+def make_folder(folderpath : ArtifactoryPath):
+    folderpath.mkdir()

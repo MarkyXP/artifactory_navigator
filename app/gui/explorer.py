@@ -64,19 +64,23 @@ class FileExplorer(wx.Frame):
         self.copy_button = wx.Button(panel, label="Copy")
         self.paste_button = wx.Button(panel, label="Paste")
         self.delete_button = wx.Button(panel, label="Delete")
+        self.new_folder_button = wx.Button(panel, label="New Folder")
         
         hbox2.Add(self.up_button, 0, wx.ALL, 5)
         hbox2.Add(self.open_button, 0, wx.ALL, 5)
         hbox2.Add(self.copy_button, 0, wx.ALL, 5)
         hbox2.Add(self.paste_button, 0, wx.ALL, 5)
         hbox2.Add(self.delete_button, 0, wx.ALL, 5)
+        hbox2.Add(self.new_folder_button, 0, wx.ALL, 5)
         vbox.Add(hbox2, 0, wx.ALIGN_CENTER)
         
         # Event bindings
+        self.up_button.Bind(wx.EVT_BUTTON, self.on_up)
         self.open_button.Bind(wx.EVT_BUTTON, self.on_open)
         self.copy_button.Bind(wx.EVT_BUTTON, self.on_copy)
         self.paste_button.Bind(wx.EVT_BUTTON, self.on_paste)
         self.delete_button.Bind(wx.EVT_BUTTON, self.on_delete)
+        self.new_folder_button.Bind(wx.EVT_BUTTON, self.start_make_folder)
         self.file_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_item_activated)
         self.Bind(wx.EVT_LIST_BEGIN_LABEL_EDIT, self.on_start_rename)
         self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.on_end_rename)
@@ -286,18 +290,20 @@ class FileExplorer(wx.Frame):
                 wx.OK|wx.ICON_ERROR
             )
     
-    def on_delete(self, event):
+    def on_delete(self, event, show_confirmation = True):
         """Delete selected files"""
         paths = self.get_selected_paths()
         # Filter out parent directory if selected
         paths = [p for p in paths if isinstance(p, AF_Result)]
         if not paths:
-            wx.MessageBox("Please select one or more files/directories first.", "Info", wx.OK|wx.ICON_INFORMATION)
+            if show_confirmation:
+                wx.MessageBox("Please select one or more files/directories first.", "Info", wx.OK|wx.ICON_INFORMATION)
             return
         
         names = ", ".join([p.name for p in paths])
-        confirm = wx.MessageBox(f"Are you sure you want to delete {len(paths)} items?\n{names}", 
-                              "Confirm Delete", wx.YES_NO|wx.ICON_QUESTION)
+        if show_confirmation:
+            confirm = wx.MessageBox(f"Are you sure you want to delete {len(paths)} items?\n{names}", 
+                                  "Confirm Delete", wx.YES_NO|wx.ICON_QUESTION)
         if confirm == wx.YES:
             errors = []
             for path in paths:
@@ -307,11 +313,12 @@ class FileExplorer(wx.Frame):
                 except Exception as e:
                     errors.append(f"{os.path.basename(path)}: {str(e)}")
             
-            if errors:
+            if errors and show_confirmation:
                 wx.MessageBox("Errors occurred while deleting:\n" + "\n".join(errors), 
                             "Error", wx.OK|wx.ICON_ERROR)
             self.load_directory()
-            log(f"Deleted files - {len(paths)}")
+            if show_confirmation:
+                log(f"Deleted files - {len(paths)}")
 
     def on_start_rename(self, event):
         if event.GetIndex() == 0:
@@ -334,11 +341,23 @@ class FileExplorer(wx.Frame):
             self.load_directory()
         else:
             event.Veto() 
+    
+    def start_make_folder(self, *_):
+        dialog = wx.TextEntryDialog(self, "Enter a folder name:", "Folder Input")
+        if dialog.ShowModal() == wx.ID_OK:
+            folder_name = dialog.GetValue()
+            #new_folder = AF.open(self.conn, self.current_dir.as_posix()  + "/" + folder_name)
+            new_folder = self.current_dir / folder_name
+            file_handler.make_folder(new_folder)
+            self.current_dir = new_folder
+            self.load_directory()
+
 
     def on_key_down(self, event):
         key_code = event.GetKeyCode()
         control_down = event.ControlDown()
         alt_down = event.AltDown()
+        shift_down = event.ShiftDown()
         if key_code == wx.WXK_DELETE:
             self.on_delete(None)
         elif key_code == wx.WXK_F2:
@@ -349,8 +368,10 @@ class FileExplorer(wx.Frame):
             self.on_copy(None, False)
         elif control_down and key_code == ord("V"):
             self.on_paste(None)
-        elif alt_down and wx.WXK_LEFT:
+        elif alt_down and key_code == wx.WXK_LEFT:
             self.on_up(None)
+        elif control_down and shift_down and key_code == ord("N"):
+            self.start_make_folder()
         else:
             event.Skip()  # Allow other key events to be processed
 
