@@ -17,7 +17,7 @@ This is a simple file explorer for navigating Artifactory:
 ![DHFR_WIP_Screenshot](assets/Screenshot.png)
 
 ## Features:
-- Username / Password _can_ be encrypted and saved locally for quick login, to follow best practices this is disabled by default
+- Username / Password can be encrypted and saved locally for quick login
 - Drag / Drop files to upload
 - Drag / Drop files to download
 - Supports the following shortcut keys:
@@ -27,7 +27,11 @@ This is a simple file explorer for navigating Artifactory:
     - Control Shift N : Make a folder & open it
     - Delete : Deletes the file(s) highlighted
     - Enter : Downloads and opens the file(s) highlighted, or just opens the folder, depending on what's highlighted.
+- Right click Menu
+    - Has options to copy the file path, the sha256 number, download the file, etc.
 - When uploading ZIP files that only contain a document and a Summary file (i.e. ZIP files downloaded from DocuSign), AF Navigator will automatically unzip these files and rename the Summary file appropriately.
+
+<div class="page"/>
 
 ## Privacy & Telemetry:
  - Note that this software does track usage in a a way that tried to be compliant with GDPR, this means:
@@ -101,7 +105,8 @@ pyinstaller --noconfirm --onefile --windowed --icon "C:\Python\artifactory_navig
  - Show splash screen when launching, instead of it just being silent.
  - Show more detailed error messages on failures.
  - Migrate a lot of the code form app.gui.explorer, the logic (including self.current_dir) should be in app.services instead.
- - Have a way for users to copy the sha number!
+  - Drop / drop OUT of AF Nav not working for 'Move'. For some reason the result I get is '1', but I should get the feedback of '3' when it's moved successfully.
+     - I don't want to ignore it and just go with '1' because that's the same return code I get then I didn't drag anything succesfully (i.e. dropped it in my IDE)
 
 ## Lessons Learnt
 I started with wxpython because I wanted a 'native' feeling application.  
