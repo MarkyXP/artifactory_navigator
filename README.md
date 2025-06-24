@@ -23,7 +23,9 @@ This is a simple file explorer for navigating Artifactory:
 - Supports the following shortcut keys:
     - Control + C : Note this downloads the highlighted files to a temp folder, so they can be pasted natively into Windows File Explorer, etc.
     - Control + V : Note this will upload the files
+    - Control + F : Opens a window allowing the user to search for a document by SHA-256 number, navigates to the first result
     - Alt Left : Simple implementation to go 'up' a directory
+    - Backspace: Simple implementation to go 'up' a directory
     - Control Shift N : Make a folder & open it
     - Delete : Deletes the file(s) highlighted
     - Enter : Downloads and opens the file(s) highlighted, or just opens the folder, depending on what's highlighted.
@@ -34,8 +36,7 @@ This is a simple file explorer for navigating Artifactory:
 <div class="page"/>
 
 ## Usage:
-< TBC >  
-My plan is to add gifs here.
+< TBC - My plan is to add gifs here. >  
 
 <div class="page"/>
 
@@ -47,7 +48,7 @@ My plan is to add gifs here.
     - When a user logs in, and whether during login the user entered their own credentials or used saved credentials
     - If a file is uploaded, and how many
     - If a file is downloaded, and how many
-    - If a file or folder is delted, and how many
+    - If a file or folder is deleted, and how many
     - If a folder is created
     - If a file is renamed
 
