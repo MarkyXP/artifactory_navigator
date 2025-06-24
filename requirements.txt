@@ -1,6 +1,7 @@
-wxpython
-requests
-python-dotenv
-cryptography
-dohq-artifactory
-azure-cosmos
+wxpython        # GUI
+requests        # Used to add cert to AF
+python-dotenv   # Loading app secrets
+cryptography    # Storing user creds
+dohq-artifactory# 
+azure-cosmos    # Logggin
+pyahocorasick   # Text search

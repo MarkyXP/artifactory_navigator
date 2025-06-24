@@ -1,7 +1,6 @@
 import json
 import os
 import subprocess
-from pathlib import Path
 
 from cryptography.fernet import Fernet
 
@@ -12,11 +11,13 @@ _fernet = Fernet(_key)
 
 def _get_login_users_full_name(username : str | None = None) -> str:
     """
-    Returns a string with the doman name registered against the username,
+
+    Returns a string with the domain name registered against the username,
     e.g. "Mark Evans".
-    Note: If no match is found witll just return a blank string.
+    Note: If no match is found it will just return a blank string.
     Args:
-     username : Uses the doman registry to lookup the full name for the username
+
+     username : Uses the domain registry to lookup the full name for the username
                 If no username is provided it just uses the currently logged
                 in users username.
     """
@@ -26,7 +27,7 @@ def _get_login_users_full_name(username : str | None = None) -> str:
         name = subprocess.check_output(
             f'net user {username} /domain | FIND /I "Full Name"', shell=True
         )
-    except:
+    except Exception as _:
         return ""
     full_name = name.replace(b"Full Name", b"").strip().decode(errors="ignore")
     return full_name
@@ -39,25 +40,31 @@ def _get_login_username() -> str:
 
 def _get_store() -> dict:
     """
-    Loads the store with the user details.
-    Returns an empty dictionary if the store doesn't exist.
+    Loads and decrypts the store with user details.
+    Returns an empty dictionary if the store doesn't exist or is corrupted.
     """
     store_path = CONFIG.STORE_LOCATION_PATH
     if store_path.exists():
         with store_path.open() as f:
             try:
-                return json.load(f)
-            except:
+                encrypted_store = json.load(f)
+                decrypted_store_json = _fernet.decrypt(encrypted_store.encode())
+                return json.loads(decrypted_store_json)
+            except Exception as _:
                 # The file has been corrupted
                 return {}
     return {}
 
 def _save_store(store : dict):
+    """
+    Encrypts the store with user details and saves it.
+    """
     store_path = CONFIG.STORE_LOCATION_PATH
+    encrypted_store_json = _fernet.encrypt(json.dumps(store).encode()).decode()
     # Make the folderpath if it doesn't already exist
     store_path.parent.mkdir(parents=True, exist_ok=True)
     with store_path.open(mode="w") as f:
-        json.dump(store, f)
+        json.dump({"data": encrypted_store_json}, f)
 
 def get_username() -> str:
     """
@@ -81,15 +88,13 @@ def get_password() -> str:
     Gets the stored password (if stored)
     """
     store = _get_store()
-    if "pass" in store:
-        try:
-            return _fernet.decrypt(store["pass"].encode())
-        except:  # PW Corrupted
-            return ""
-    return ""
+    return store.get("pass", "")
 
 def set_password(pw : str) -> None:
+    """
+    Encrypts the password using fernet encryption
+    and saves it to the store.
+    """
     store = _get_store()
-    encrypted = _fernet.encrypt(pw.encode())
-    store["pass"] = encrypted.decode()
+    store["pass"] = pw
     _save_store(store)

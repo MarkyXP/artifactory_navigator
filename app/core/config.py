@@ -32,8 +32,8 @@ for config_location in possible_config_locations:
             config_dict : dict = json.loads(config)
             config_found = True
             break
-        except Exception as e:
-            raise f"Error reading config file - Ensure the json is not corrupted"
+        except Exception as _:
+            raise "Error reading config file - Ensure the json is not corrupted"
 if not config_found:
     raise "Error - Could not find config.json file"
 
