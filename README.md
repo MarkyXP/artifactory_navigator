@@ -14,7 +14,7 @@
 ## Summary:
 This is a simple file explorer for navigating Artifactory:
 
-![DHFR_WIP_Screenshot](./assets/Screenshot.png)
+![DHFR_WIP_Screenshot](Assets/Screenshot.png)
 
 ## Features:
 - Username / Password can be encrypted and saved locally for quick login
