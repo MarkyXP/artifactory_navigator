@@ -2,6 +2,7 @@
 
 from artifactory import ArtifactoryPath
 from requests import Session
+from typing import List
 
 from app.core.config import CONFIG
 
@@ -24,7 +25,7 @@ def open(conn : ArtifactoryPath, url : str) -> ArtifactoryPath:
     )
     return new_conn
 
-def get_search_args(repo_name : str, foldername : str):
+def get_folder_contents_aql(repo_name : str, foldername : str):
     args = {
         "$and" : [
             {"$or" :
@@ -46,5 +47,37 @@ def get_search_args(repo_name : str, foldername : str):
     ]
     return aqlargs
 
-#aqlargs = _get_search_args(repo)
-#artifacts_list = connection.aql(*aqlargs)
+def find_sha_aql(sha : str):
+    aqlargs = [
+        "items.find",
+        {"sha256" : sha},
+        ".include",
+        ["repo", "path", "name"],
+        ".sort",
+        {"$asc": ["name"]}
+    ]
+    return aqlargs
+
+def _find_sha256(conn : ArtifactoryPath, sha : str) -> List[ArtifactoryPath]:
+    aql_ary = find_sha_aql(sha)
+    results = conn.aql(*aql_ary)
+    results_afpath = [
+        conn / result["repo"] / result["path"] / result["name"]
+        for result
+        in results
+    ]
+    return results_afpath
+
+def _find_all(conn : ArtifactoryPath, sha : str) -> List[ArtifactoryPath]:
+    pass
+
+def find(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
+    """
+    Searches for the query
+     - If the query is 64characters long treats it as a sha256 checksum search
+     - Otherwise it does a case insensitive search
+    """
+    query = query.strip()
+    if len(query) == 64:
+        return _find_sha256(conn, query)
+    _find_all(conn, query)

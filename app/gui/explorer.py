@@ -100,8 +100,8 @@ class FileExplorer(wx.Frame):
         delete_item = menu.Append(wx.ID_ANY, "Delete")
         
         # Event bindings
-        self.Bind(wx.EVT_MENU, self.copy_as_path_item, copy_as_path_item)
-        self.Bind(wx.EVT_MENU, self.copy_sha_item, copy_sha_item)
+        self.Bind(wx.EVT_MENU, self.on_copy_as_path, copy_as_path_item)
+        self.Bind(wx.EVT_MENU, self.on_copy_sha, copy_sha_item)
         self.Bind(wx.EVT_MENU, self.on_copy, copy_item)
         self.Bind(wx.EVT_MENU, self.on_save_to_file, download_item)
         self.Bind(wx.EVT_MENU, self.on_delete, delete_item)
@@ -116,7 +116,7 @@ class FileExplorer(wx.Frame):
             download_item.Enabled(False)
         self.PopupMenu(menu)
 
-    def copy_sha_item(self, event : wx.CommandEvent):
+    def on_copy_sha(self, event : wx.CommandEvent):
         af_paths = self.get_selected_paths()
         af_paths = [f for f in af_paths if f.type == "file"]
         shas = [f.sha256 for f in af_paths]
@@ -125,7 +125,7 @@ class FileExplorer(wx.Frame):
             wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
             wx.TheClipboard.Close()
     
-    def copy_as_path_item(self, event : wx.CommandEvent):
+    def on_copy_as_path(self, event : wx.CommandEvent):
         af_paths = self.get_selected_paths()
         shas = [str(self.current_dir / f.name) for f in af_paths]
         clipboard_str = ", ".join(shas)
@@ -192,7 +192,6 @@ class FileExplorer(wx.Frame):
                 path.unlink(missing_ok = True)
             self.load_directory()
 
-    
     def load_directory(self):
         """Load the contents of the current directory into the list"""
         self.file_list.DeleteAllItems()
@@ -201,7 +200,7 @@ class FileExplorer(wx.Frame):
             self.dir_text.SetValue(curr_foldername)
             path_in_repo = self.current_dir.path_in_repo[1:] or "."
             items_dict = self.conn.aql(
-                *AF.get_search_args(
+                *AF.get_folder_contents_aql(
                     repo_name = self.current_dir.repo,
                     foldername = path_in_repo
                 )
@@ -427,12 +426,25 @@ class FileExplorer(wx.Frame):
         dialog = wx.TextEntryDialog(self, "Enter a folder name:", "Folder Input")
         if dialog.ShowModal() == wx.ID_OK:
             folder_name = dialog.GetValue()
-            #new_folder = AF.open(self.conn, self.current_dir.as_posix()  + "/" + folder_name)
             new_folder = self.current_dir / folder_name
             file_handler.make_folder(new_folder)
             self.current_dir = new_folder
             self.load_directory()
-
+    
+    def start_search(self, *_):
+        dialog = wx.TextEntryDialog(self, "Enter a SHA-256 Number:", "SHA-256")
+        if dialog.ShowModal() == wx.ID_OK:
+            search_term = dialog.GetValue().strip()
+            items_dict = AF.find(self.conn, search_term)
+            if not items_dict:
+                wx.MessageBox("No results found", "Error", wx.OK|wx.ICON_ERROR)
+                return
+            #if len(items_dict) == 1:
+            # Go to the folder
+            item = items_dict[0]
+            self.current_dir = item.parent
+            
+            self.load_directory()
 
     def on_key_down(self, event):
         key_code = event.GetKeyCode()
@@ -453,6 +465,8 @@ class FileExplorer(wx.Frame):
             self.on_up(None)
         elif control_down and shift_down and (key_code == ord("N")):
             self.start_make_folder()
+        elif control_down and (key_code == ord("F")):
+            self.start_search()
         else:
             event.Skip()  # Allow other key events to be processed
 
