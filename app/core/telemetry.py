@@ -1,12 +1,11 @@
-import threading
 import uuid
 import warnings
-from functools import wraps
 
 from azure.cosmos import CosmosClient
 from requests import Session
 
 from app.core.config import CONFIG
+from app.core.tools import run_in_background
 
 _disable_logging = False
 _auth_acquired = False
@@ -24,16 +23,8 @@ try:
     _container = _database.get_container_client(CONFIG.AZURE_COSMOS_CONTAINER_ID)
     _session_id = str(uuid.uuid4())
     _msg_count = 0
-except Exception as e:
+except Exception as _:
     _disable_logging = True
-
-def run_in_background(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        thread = threading.Thread(target=func, args=args, kwargs=kwargs, daemon=True)
-        thread.start()
-        return thread  # optionally return the thread if you want to check status
-    return wrapper
 
 def set_auth(username : str, pw : str):
     global _auth_acquired
@@ -60,7 +51,7 @@ def log(msg : str):
                     "msg" : msg,
                 }
             )
-    except:
+    except Exception as _:
         # Logging failed for some reason, just disable it so it doesn't cause timeout delays
         _disable_logging = True
     _msg_count += 1

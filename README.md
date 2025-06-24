@@ -33,6 +33,12 @@ This is a simple file explorer for navigating Artifactory:
 
 <div class="page"/>
 
+## Usage:
+< TBC >  
+My plan is to add gifs here.
+
+<div class="page"/>
+
 ## Privacy & Telemetry:
  - Note that this software does track usage in a a way that tried to be compliant with GDPR, this means:
     - No personally identifiable information is collected, or any information that could be used to track back to a user or group of users (e.g. user name, computer name, ip address, etc)
@@ -112,11 +118,10 @@ pyinstaller --noconfirm --onefile --windowed --icon "C:\Python\artifactory_navig
 I started with wxpython because I wanted a 'native' feeling application.  
 However I'm not happy with the final result, it looks a bit boring, and I feel like I think I would be happier with a tauri/svelte based application.
 
+I've done some updates to the way the password was encrypted, I'm encrypting the entire credentials store so the username will be included as well, which should enture unique encrypted stores even if users have the same password.
+
 ## What went well
 The entire thing was done over 2 days of work, including this document. So sticking entirely to Python which I'm comfortable with worked well.  
 I'm happy with the shortcut keys.  
 I tried a handful of LLM services (ChatGPT, etc) to 'vibe code' getting the basic file explorer working with drag / drop to ensure the GUI tool selected could support it. Using the LLM meant that I didn't need to become an expert in the library before committing to it being stuck with the drawbacks. I'll also mention that deepseek was the best LLM for generating the drag/drop functionality at the time of writing.  
 I spent a bit of time looking at how to encrypt the login credentials locally and encrypting it, I'm happy enough with the result.
-
-
-<div class="page"/>
