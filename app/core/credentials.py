@@ -47,7 +47,7 @@ def _get_store() -> dict:
     if store_path.exists():
         with store_path.open() as f:
             try:
-                encrypted_store = json.load(f)
+                encrypted_store = f.read()
                 decrypted_store_json = _fernet.decrypt(encrypted_store.encode())
                 return json.loads(decrypted_store_json)
             except Exception as _:
@@ -64,7 +64,7 @@ def _save_store(store : dict):
     # Make the folderpath if it doesn't already exist
     store_path.parent.mkdir(parents=True, exist_ok=True)
     with store_path.open(mode="w") as f:
-        json.dump({"data": encrypted_store_json}, f)
+        f.write(encrypted_store_json)
 
 def get_username() -> str:
     """
