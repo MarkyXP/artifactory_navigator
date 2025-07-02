@@ -22,7 +22,7 @@ class FileExplorer(wx.Frame):
         self.conn = af_conn
         self.current_dir : ArtifactoryPath = self.conn.get_repositories()[33].path
         self.current_dir = AF.open(
-            self.conn, CONFIG.AF_URL# + "/ddc-dhfr-wip-prod-mel"
+            self.conn, CONFIG.AF_URL
         )
         self.clipboard = []
         
@@ -96,6 +96,7 @@ class FileExplorer(wx.Frame):
         copy_as_path_item = menu.Append(wx.ID_ANY, "Copy as Path")
         copy_item = menu.Append(wx.ID_ANY, "Copy")
         copy_sha_item = menu.Append(wx.ID_ANY, "Copy SHA")
+        copy_as_table_item = menu.Append(wx.ID_ANY, "Copy as Table")
         download_item = menu.Append(wx.ID_ANY, "Download")
         delete_item = menu.Append(wx.ID_ANY, "Delete")
         
@@ -104,6 +105,7 @@ class FileExplorer(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_copy_sha, copy_sha_item)
         self.Bind(wx.EVT_MENU, self.on_copy, copy_item)
         self.Bind(wx.EVT_MENU, self.on_save_to_file, download_item)
+        self.Bind(wx.EVT_MENU, self.on_copy_as_table, copy_as_table_item)
         self.Bind(wx.EVT_MENU, self.on_delete, delete_item)
         
         af_paths = self.get_selected_paths()
@@ -129,6 +131,18 @@ class FileExplorer(wx.Frame):
         af_paths = self.get_selected_paths()
         shas = [str(self.current_dir / f.name) for f in af_paths]
         clipboard_str = ", ".join(shas)
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
+            wx.TheClipboard.Close()
+    
+    def on_copy_as_table(self, event : wx.CommandEvent):
+        af_paths = self.get_selected_paths()
+        rows = ["Name", "Modified By", "SHA256"]
+        rows += [
+            f"{item.name}\t{item.modified_by}\t{item.sha256}"
+            for item in af_paths
+        ]
+        clipboard_str = "\n".join(rows)
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
             wx.TheClipboard.Close()
