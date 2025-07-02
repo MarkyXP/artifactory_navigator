@@ -63,7 +63,6 @@ class Services_Revision(unittest.TestCase):
         assert actual == found
     
     def test_sub_dhfr(self):
-        return
         filename = "DHFR_12345_001_A01_P3_IA.pdf"
         actual = ("DHFR_12345_001", "A01", "P3 IA", "PDF")
         found = get_doc_no(filename)

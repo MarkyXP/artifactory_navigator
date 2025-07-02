@@ -9,6 +9,9 @@ from app.models.revision import ReVision_Response
 
 _session = Session()
 _session.verify = CONFIG.HTTP_CERT_FNAME
+_dhfr_regex = re.compile(r"(DHFR_\d{4,5}\.?\d{3}?)\.([A-Z]\d{2})")
+_dmr_regex = re.compile(r"([A-Z]{0,2}\d{2,4}\.\d{4}\.\d{3})\.([A-Z]{0,2}\d{2})")
+
 
 def get_drawings_for_cr(cr_number : int) -> List[ReVision_Response]:
     if not cr_number:
@@ -50,8 +53,11 @@ def get_doc_no(filename : str) -> Tuple[str, str, str, str]:
     # Look for DMR #s
     name_alphanum_raw = re.sub(r"[^A-Z0-9]", r".", stem.upper())
     name_alphanum = re.sub(r"\.+", r".", name_alphanum_raw)
-    dmr = re.findall(r"([A-Z]{0,2}\d{2,4}\.\d{4}\.\d{3})\.([A-Z]{0,2}\d{2})", name_alphanum)
-    if dmr:
+    dhfr = re.findall(_dhfr_regex, name_alphanum)
+    dmr = re.findall(_dmr_regex, name_alphanum)
+    if dhfr:
+        doc_no, doc_rev = dhfr[0]
+    elif dmr:
         doc_no, doc_rev = dmr[0]
     doc_title_raw = re.sub(f"{doc_no}.*{doc_rev}", "", stem, flags=re.IGNORECASE)
     doc_title_double_spaces = re.sub(r"[^a-zA-Z0-9]", " ", doc_title_raw)
