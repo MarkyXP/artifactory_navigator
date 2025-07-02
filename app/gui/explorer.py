@@ -206,8 +206,14 @@ class FileExplorer(wx.Frame):
                 path.unlink(missing_ok = True)
             self.load_directory()
 
-    def load_directory(self):
-        """Load the contents of the current directory into the list"""
+    def load_directory(self, files_to_highlight : List[str] = ()):
+        """Load the contents of the current directory into the list
+        
+        Arguments:
+            file_to_highlight : List[str]
+                List of SHA #s of the files to highlight.
+
+        """
         self.file_list.DeleteAllItems()
         try:
             curr_foldername = "/" + self.current_dir.repo + self.current_dir.path_in_repo
@@ -250,6 +256,7 @@ class FileExplorer(wx.Frame):
             self.file_list.SetItem(index, 5, "")
             self.file_list.SetItem(index, 6, "")
         # Add files and directories
+        indexes_to_highlight = []
         try:
             for i, item in enumerate(self.items):
                 # Item 0 - Name
@@ -264,8 +271,15 @@ class FileExplorer(wx.Frame):
                 self.file_list.SetItem(index, 4, item.updated)
                 self.file_list.SetItem(index, 5, item.modified_by or item.created_by or "")
                 self.file_list.SetItem(index, 6, item.sha256 or "")
+                if item.sha256 in files_to_highlight:
+                    indexes_to_highlight.append(index)
         except Exception as e:
             wx.MessageBox(f"Error reading directory: {str(e)}", "Error", wx.OK|wx.ICON_ERROR)
+        # Highlight the files
+        for i in indexes_to_highlight:
+            self.file_list.Select(i)
+            self.file_list.Focus(i)
+            self.file_list.EnsureVisible(i)
         pass
     
     def format_size(self, size):
@@ -457,8 +471,8 @@ class FileExplorer(wx.Frame):
             # Go to the folder
             item = items_dict[0]
             self.current_dir = item.parent
-            
-            self.load_directory()
+            shas_to_highlight = [item.stat().sha256]
+            self.load_directory(shas_to_highlight)
 
     def on_key_down(self, event):
         key_code = event.GetKeyCode()
