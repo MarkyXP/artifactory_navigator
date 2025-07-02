@@ -1,10 +1,10 @@
-from typing import List
+from typing import List, Tuple
 import re
 
 from requests import Session
 
 from app.core.config import CONFIG
-from app.core.tools import run_in_background
+# from app.core.tools import run_in_background
 from app.models.revision import ReVision_Response
 
 _session = Session()
@@ -36,11 +36,24 @@ def get_drawings_for_cr(cr_number : int) -> List[ReVision_Response]:
     ]
     return drawing_fmt
     
-def get_doc_no(filename : str) -> str | None:
+def get_doc_no(filename : str) -> Tuple[str, str, str, str]:
     """
     Args:
      - filename : e.g. '21_5901_130_A01_BOND_Mainboard_BOM.zip'
     Returns:
      - Doc No with out Revision : e.g. '21.5901.130'
     """
-    dmr_regex = re.compile()
+    # Get (and remove) the file extension to start
+    file_ext = filename.upper().split(".")[-1]
+    stem = filename[:-(len(file_ext)+1)]
+    # Look for DHFR #s _FIRST_ (e.g. 'DHFR_12345_A01_091_5591_130_DDD.PDF')
+    # Look for DMR #s
+    name_alphanum_raw = re.sub(r"[^A-Z0-9]", r".", stem.upper())
+    name_alphanum = re.sub(r"\.+", r".", name_alphanum_raw)
+    dmr = re.findall(r"([A-Z]{0,2}\d{2,4}\.\d{4}\.\d{3})\.([A-Z]{0,2}\d{2})", name_alphanum)
+    if dmr:
+        doc_no, doc_rev = dmr[0]
+    doc_title_raw = re.sub(f"{doc_no}.*{doc_rev}", "", stem, flags=re.IGNORECASE)
+    doc_title_double_spaces = re.sub(r"[^a-zA-Z0-9]", " ", doc_title_raw)
+    doc_title = re.sub(r"\s+", " ", doc_title_double_spaces).strip()
+    return doc_no, doc_rev, doc_title, file_ext
