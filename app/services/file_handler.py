@@ -33,6 +33,8 @@ def check_is_summary_file(src : pathlib.Path | str):
         return False
     if not _is_zip(src):
         return
+    if not src.name.lower().startswith("complete_with_docusign"):
+        return
     contents = unzip(src)
     if len(contents) != 2:
         return False
@@ -71,12 +73,23 @@ def upload_formatted_files(files : List[pathlib.Path], dest_folder : Artifactory
             is_summary = check_is_summary_file(filepath)
             if is_summary:
                 for file in is_summary:
-                    dest_folder.deploy_file(file.as_posix())
+                    deploy_file_w_params(dest_folder, file.as_posix())
             else:
-                dest_folder.deploy_file(filepath.as_posix())
+                deploy_file_w_params(dest_folder, file.as_posix())
         except Exception as e:
             errors.append(f"{filepath.name}: {str(e)}")
     return errors
+
+def deploy_file_w_params(dest_folder : ArtifactoryPath, src_filepath : str):
+    params = {}
+    if src_filepath.lower().endswith(".pdf"):
+        pass
+
+    dest_folder.deploy_file(
+        src_filepath,
+        parameters=params
+    )
+
 
 def make_folder(folderpath : ArtifactoryPath):
     folderpath.mkdir()

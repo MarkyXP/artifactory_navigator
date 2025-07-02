@@ -9,6 +9,7 @@ from app.core.config import CONFIG
 from app.core.telemetry import log
 from app.services import af as AF
 from app.services import file_handler
+from app.services import explorer as EXPLORER
 from app.models.af_search_results import AF_Result, AF_Repo
 
 
@@ -90,121 +91,6 @@ class FileExplorer(wx.Frame):
         self.file_list.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         
         panel.SetSizer(vbox)
-    
-    def on_context_menu(self, event):
-        menu = wx.Menu()
-        copy_as_path_item = menu.Append(wx.ID_ANY, "Copy as Path")
-        copy_item = menu.Append(wx.ID_ANY, "Copy")
-        copy_sha_item = menu.Append(wx.ID_ANY, "Copy SHA")
-        copy_as_table_item = menu.Append(wx.ID_ANY, "Copy as Table")
-        download_item = menu.Append(wx.ID_ANY, "Download")
-        delete_item = menu.Append(wx.ID_ANY, "Delete")
-        
-        # Event bindings
-        self.Bind(wx.EVT_MENU, self.on_copy_as_path, copy_as_path_item)
-        self.Bind(wx.EVT_MENU, self.on_copy_sha, copy_sha_item)
-        self.Bind(wx.EVT_MENU, self.on_copy, copy_item)
-        self.Bind(wx.EVT_MENU, self.on_save_to_file, download_item)
-        self.Bind(wx.EVT_MENU, self.on_copy_as_table, copy_as_table_item)
-        self.Bind(wx.EVT_MENU, self.on_delete, delete_item)
-        
-        af_paths = self.get_selected_paths()
-        af_paths = [f for f in af_paths if not f.name == ".."]
-        if not af_paths:
-            return # Nothing selected, do nothing
-        if all(f.type == "folder" for f in af_paths):
-            copy_item.Enabled(False)
-            copy_sha_item.Enabled(False)
-            download_item.Enabled(False)
-        self.PopupMenu(menu)
-
-    def on_copy_sha(self, event : wx.CommandEvent):
-        af_paths = self.get_selected_paths()
-        af_paths = [f for f in af_paths if f.type == "file"]
-        shas = [f.sha256 for f in af_paths]
-        clipboard_str = "\n".join(shas)
-        if wx.TheClipboard.Open():
-            wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
-            wx.TheClipboard.Close()
-    
-    def on_copy_as_path(self, event : wx.CommandEvent):
-        af_paths = self.get_selected_paths()
-        shas = [str(self.current_dir / f.name) for f in af_paths]
-        clipboard_str = ", ".join(shas)
-        if wx.TheClipboard.Open():
-            wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
-            wx.TheClipboard.Close()
-    
-    def on_copy_as_table(self, event : wx.CommandEvent):
-        af_paths = self.get_selected_paths()
-        rows = ["Name", "Modified By", "SHA256"]
-        rows += [
-            f"{item.name}\t{item.modified_by}\t{item.sha256}"
-            for item in af_paths
-        ]
-        clipboard_str = "\n".join(rows)
-        if wx.TheClipboard.Open():
-            wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
-            wx.TheClipboard.Close()
-    
-    def on_save_to_file(self, event):
-        # Create the dialog
-        dialog = wx.DirDialog(
-            self,  # parent window
-            "Select a folder:",  # message
-            style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST
-        )
-        # Show the dialog and check if user clicked OK
-        if dialog.ShowModal() == wx.ID_OK:
-            selected_folder = Path(dialog.GetPath())
-            af_paths = self.get_selected_paths()
-            af_paths = [f for f in af_paths if f.type == "file"]
-            for path in af_paths:
-                file_path_str = self.current_dir.as_posix() + "/" + path.name
-                af_file = AF.open(self.conn, file_path_str)
-                self._download_file(
-                    file_conn = af_file,
-                    open = len(af_paths) == 1,
-                    output_path = selected_folder
-                )
-        # Destroy the dialog when done
-        dialog.Destroy()
-
-    def on_begin_drag(self, event):
-        """Handle drag initiation from the file list"""
-        paths = self.get_selected_paths()
-        if not paths:
-            return
-        
-        # Create a file drop source
-        data_object = wx.FileDataObject()
-        af_paths = [
-            self.current_dir / str(path.name)
-            for path in paths
-        ]
-        for path in af_paths:
-            file_path_str = path.as_posix()
-            data_object.AddFile(
-                str(self._download_file(
-                    file_conn = AF.open(self.conn, file_path_str),
-                    open = False
-                ))
-            )
-        
-        drop_source = wx.DropSource(self.file_list)
-        drop_source.SetData(data_object)
-        
-        # Start the drag operation
-        result = drop_source.DoDragDrop(wx.Drag_AllowMove)
-        
-        # You could handle different results here if needed
-        if result == wx.DragCopy:
-            pass
-        elif result == wx.DragMove:
-            # I should delete the files...
-            for path in af_paths:
-                path.unlink(missing_ok = True)
-            self.load_directory()
 
     def load_directory(self, files_to_highlight : List[str] = ()):
         """Load the contents of the current directory into the list
@@ -282,33 +168,122 @@ class FileExplorer(wx.Frame):
             self.file_list.EnsureVisible(i)
         pass
     
-    def format_size(self, size):
-        """Format file size in human-readable format"""
-        if size == 0:
-            return ""
-        for unit in ['B', 'KB', 'MB', 'GB']:
-            if size < 1024.0:
-                return f"{size:.1f} {unit}"
-            size /= 1024.0
-        return f"{size:.1f} TB"
+    def on_context_menu(self, event):
+        menu = wx.Menu()
+        copy_as_path_item = menu.Append(wx.ID_ANY, "Copy as Path")
+        copy_item = menu.Append(wx.ID_ANY, "Copy")
+        copy_sha_item = menu.Append(wx.ID_ANY, "Copy SHA")
+        copy_as_table_item = menu.Append(wx.ID_ANY, "Copy as Table")
+        download_item = menu.Append(wx.ID_ANY, "Download")
+        delete_item = menu.Append(wx.ID_ANY, "Delete")
+        compare_to_revision_item = menu.Append(wx.ID_ANY, "Check against ReVision")
+        
+        # Event bindings
+        self.Bind(wx.EVT_MENU, self.on_copy_as_path, copy_as_path_item)
+        self.Bind(wx.EVT_MENU, self.on_copy_sha, copy_sha_item)
+        self.Bind(wx.EVT_MENU, self.on_copy, copy_item)
+        self.Bind(wx.EVT_MENU, self.on_save_to_file, download_item)
+        self.Bind(wx.EVT_MENU, self.on_copy_as_table, copy_as_table_item)
+        self.Bind(wx.EVT_MENU, self.on_delete, delete_item)
+        self.Bind(wx.EVT_MENU, self.on_compare_to_revision_item, compare_to_revision_item)
+        
+        af_paths = self.get_selected_paths()
+        af_paths = [f for f in af_paths if not f.name == ".."]
+        if not af_paths:
+            return # Nothing selected, do nothing
+        if all(f.type == "folder" for f in af_paths):
+            copy_item.Enabled(False)
+            copy_sha_item.Enabled(False)
+            download_item.Enabled(False)
+        self.PopupMenu(menu)
     
-    def get_selected_paths(self) -> List[AF_Result]:
-        """Get the full paths of all selected items"""
-        selected_paths = []
-        index = self.file_list.GetFirstSelected()
-        
-        while index != -1:
-            item_text = self.file_list.GetItemText(index)
-            if item_text == "..":
-                selected_paths.append("..")
-            else:
-                # selected_paths.append(os.path.join(self.current_dir, item_text))
-                selected_paths.append(
-                    self.items[index + self.selecting_offset]
+    def on_copy_as_path(self, event : wx.CommandEvent):
+        af_paths = self.get_selected_paths()
+        shas = [str(self.current_dir / f.name) for f in af_paths]
+        clipboard_str = ", ".join(shas)
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
+            wx.TheClipboard.Close()
+
+    def on_copy_sha(self, event : wx.CommandEvent):
+        af_paths = self.get_selected_paths()
+        af_paths = [f for f in af_paths if f.type == "file"]
+        shas = [f.sha256 for f in af_paths]
+        clipboard_str = "\n".join(shas)
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
+            wx.TheClipboard.Close()
+    
+    def on_copy_as_table(self, event : wx.CommandEvent):
+        af_paths = self.get_selected_paths()
+        rows = ["Name", "Modified By", "SHA256"]
+        rows += [
+            f"{item.name}\t{item.modified_by}\t{item.sha256}"
+            for item in af_paths
+        ]
+        clipboard_str = "\n".join(rows)
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
+            wx.TheClipboard.Close()
+    
+    def on_save_to_file(self, event):
+        # Create the dialog
+        dialog = wx.DirDialog(
+            self,  # parent window
+            "Select a folder:",  # message
+            style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST
+        )
+        # Show the dialog and check if user clicked OK
+        if dialog.ShowModal() == wx.ID_OK:
+            selected_folder = Path(dialog.GetPath())
+            af_paths = self.get_selected_paths()
+            af_paths = [f for f in af_paths if f.type == "file"]
+            for path in af_paths:
+                file_path_str = self.current_dir.as_posix() + "/" + path.name
+                af_file = AF.open(self.conn, file_path_str)
+                self._download_file(
+                    file_conn = af_file,
+                    open = len(af_paths) == 1,
+                    output_path = selected_folder
                 )
-            index = self.file_list.GetNextSelected(index)
+        # Destroy the dialog when done
+        dialog.Destroy()
+
+    def on_begin_drag(self, event):
+        """Handle drag initiation from the file list"""
+        paths = self.get_selected_paths()
+        if not paths:
+            return
         
-        return selected_paths if selected_paths else None
+        # Create a file drop source
+        data_object = wx.FileDataObject()
+        af_paths = [
+            self.current_dir / str(path.name)
+            for path in paths
+        ]
+        for path in af_paths:
+            file_path_str = path.as_posix()
+            data_object.AddFile(
+                str(self._download_file(
+                    file_conn = AF.open(self.conn, file_path_str),
+                    open = False
+                ))
+            )
+        
+        drop_source = wx.DropSource(self.file_list)
+        drop_source.SetData(data_object)
+        
+        # Start the drag operation
+        result = drop_source.DoDragDrop(wx.Drag_AllowMove)
+        
+        # You could handle different results here if needed
+        if result == wx.DragCopy:
+            pass
+        elif result == wx.DragMove:
+            # I should delete the files...
+            for path in af_paths:
+                path.unlink(missing_ok = True)
+            self.load_directory()
     
     def on_up(self, event):
         """Navigate to parent directory"""
@@ -317,19 +292,6 @@ class FileExplorer(wx.Frame):
         if parent_dir != self.current_dir:  # Not at root
             self.current_dir = parent_dir
             self.load_directory()
-    
-    def _download_file(self, file_conn : ArtifactoryPath, open = False, output_path : Path | None = None) -> Path:
-        # Make a temp folder if necessary
-        if not output_path:
-            output_path = CONFIG.STORE_TEMPFILES_PATH
-            output_path.mkdir(parents=True, exist_ok=True)
-        fname = file_conn.name
-        tmp_file_path = output_path / fname
-        with tmp_file_path.open(mode="wb") as f:
-            file_conn.writeto(f, chunk_size=256)
-        if open:
-            os.startfile(tmp_file_path.as_posix())
-        return tmp_file_path
 
     def on_open(self, event):
         """Open selected file or directory (only works with single selection)"""
@@ -428,6 +390,12 @@ class FileExplorer(wx.Frame):
             if show_confirmation:
                 log(f"Deleted files - {len(paths)}")
 
+    def on_compare_to_revision_item(self, event):
+        first_item = self.file_list.GetItem(1,0).GetText()
+        EXPLORER.compare_to_revision(
+            self.current_dir
+        )
+
     def on_start_rename(self, event):
         if event.GetIndex() == 0:
             event.Veto()
@@ -448,31 +416,7 @@ class FileExplorer(wx.Frame):
             log("File renamed")
             self.load_directory()
         else:
-            event.Veto() 
-    
-    def start_make_folder(self, *_):
-        dialog = wx.TextEntryDialog(self, "Enter a folder name:", "Folder Input")
-        if dialog.ShowModal() == wx.ID_OK:
-            folder_name = dialog.GetValue()
-            new_folder = self.current_dir / folder_name
-            file_handler.make_folder(new_folder)
-            self.current_dir = new_folder
-            self.load_directory()
-    
-    def start_search(self, *_):
-        dialog = wx.TextEntryDialog(self, "Enter a SHA-256 Number:", "SHA-256")
-        if dialog.ShowModal() == wx.ID_OK:
-            search_term = dialog.GetValue().strip()
-            items_dict = AF.find(self.conn, search_term)
-            if not items_dict:
-                wx.MessageBox("No results found", "Error", wx.OK|wx.ICON_ERROR)
-                return
-            #if len(items_dict) == 1:
-            # Go to the folder
-            item = items_dict[0]
-            self.current_dir = item.parent
-            shas_to_highlight = [item.stat().sha256]
-            self.load_directory(shas_to_highlight)
+            event.Veto()
 
     def on_key_down(self, event):
         key_code = event.GetKeyCode()
@@ -497,6 +441,71 @@ class FileExplorer(wx.Frame):
             self.start_search()
         else:
             event.Skip()  # Allow other key events to be processed
+
+    def format_size(self, size):
+        """Format file size in human-readable format"""
+        if size == 0:
+            return ""
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024.0:
+                return f"{size:.1f} {unit}"
+            size /= 1024.0
+        return f"{size:.1f} TB"
+    
+    def get_selected_paths(self) -> List[AF_Result]:
+        """Get the full paths of all selected items"""
+        selected_paths = []
+        index = self.file_list.GetFirstSelected()
+        
+        while index != -1:
+            item_text = self.file_list.GetItemText(index)
+            if item_text == "..":
+                selected_paths.append("..")
+            else:
+                # selected_paths.append(os.path.join(self.current_dir, item_text))
+                selected_paths.append(
+                    self.items[index + self.selecting_offset]
+                )
+            index = self.file_list.GetNextSelected(index)
+        
+        return selected_paths if selected_paths else []
+    
+    def _download_file(self, file_conn : ArtifactoryPath, open = False, output_path : Path | None = None) -> Path:
+        # Make a temp folder if necessary
+        if not output_path:
+            output_path = CONFIG.STORE_TEMPFILES_PATH
+            output_path.mkdir(parents=True, exist_ok=True)
+        fname = file_conn.name
+        tmp_file_path = output_path / fname
+        with tmp_file_path.open(mode="wb") as f:
+            file_conn.writeto(f, chunk_size=256)
+        if open:
+            os.startfile(tmp_file_path.as_posix())
+        return tmp_file_path
+    
+    def start_make_folder(self, *_):
+        dialog = wx.TextEntryDialog(self, "Enter a folder name:", "Folder Input")
+        if dialog.ShowModal() == wx.ID_OK:
+            folder_name = dialog.GetValue()
+            new_folder = self.current_dir / folder_name
+            file_handler.make_folder(new_folder)
+            self.current_dir = new_folder
+            self.load_directory()
+    
+    def start_search(self, *_):
+        dialog = wx.TextEntryDialog(self, "Enter a SHA-256 Number:", "SHA-256")
+        if dialog.ShowModal() == wx.ID_OK:
+            search_term = dialog.GetValue().strip()
+            items_dict = AF.find(self.conn, search_term)
+            if not items_dict:
+                wx.MessageBox("No results found", "Error", wx.OK|wx.ICON_ERROR)
+                return
+            #if len(items_dict) == 1:
+            # Go to the folder
+            item = items_dict[0]
+            self.current_dir = item.parent
+            shas_to_highlight = [item.stat().sha256]
+            self.load_directory(shas_to_highlight)
 
 class FileDropTarget(wx.FileDropTarget):
     """Handles both drag-in and drag-out operations"""
