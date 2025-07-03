@@ -97,7 +97,8 @@ class FileExplorer(wx.Frame):
         
         Arguments:
             file_to_highlight : List[str]
-                List of SHA #s of the files to highlight.
+                List of SHA #s of the files to highlight _OR_
+                file names
 
         """
         self.file_list.DeleteAllItems()
@@ -157,7 +158,7 @@ class FileExplorer(wx.Frame):
                 self.file_list.SetItem(index, 4, item.updated)
                 self.file_list.SetItem(index, 5, item.modified_by or item.created_by or "")
                 self.file_list.SetItem(index, 6, item.sha256 or "")
-                if item.sha256 in files_to_highlight:
+                if item.sha256 in files_to_highlight or item.name in files_to_highlight:
                     indexes_to_highlight.append(index)
         except Exception as e:
             wx.MessageBox(f"Error reading directory: {str(e)}", "Error", wx.OK|wx.ICON_ERROR)
@@ -291,7 +292,7 @@ class FileExplorer(wx.Frame):
         parent_dir = self.current_dir.parent
         if parent_dir != self.current_dir:  # Not at root
             self.current_dir = parent_dir
-            self.load_directory()
+            self.load_directory([self.current_dir.name])
 
     def on_open(self, event):
         """Open selected file or directory (only works with single selection)"""
@@ -488,7 +489,7 @@ class FileExplorer(wx.Frame):
         if dialog.ShowModal() == wx.ID_OK:
             folder_name = dialog.GetValue()
             new_folder = self.current_dir / folder_name
-            file_handler.make_folder(new_folder)
+            AF.make_folder(new_folder)
             self.current_dir = new_folder
             self.load_directory()
     

@@ -5,9 +5,21 @@ import zipfile
 from typing import List
 
 from artifactory import ArtifactoryPath
+import math
+import pymupdf
 
 from app.core.config import CONFIG
+from app.services.revision import get_doc_no
 
+# Standard document sizes in mm (width, height, name)
+STANDARD_PAGE_SIZES = (
+    (841, 1189, "A0"),
+    (594, 841, "A1"),
+    (420, 594, "A2"),
+    (297, 420, "A3"),
+    (210, 297, "A4"),
+    (148, 210, "A5")
+)
 
 def _is_zip(path : pathlib.Path | str):
     if isinstance(path, pathlib.Path):
@@ -26,7 +38,7 @@ def unzip(src : pathlib.Path | str) -> List[pathlib.Path]:
     unzipped_files = [f for f in o_path.glob("*")]
     return unzipped_files
 
-def check_is_summary_file(src : pathlib.Path | str):
+def check_is_docusign_combined_file(src : pathlib.Path | str):
     if isinstance(src, str):
         src = pathlib.Path(src)
     if not src.exists():
@@ -70,26 +82,91 @@ def upload_formatted_files(files : List[pathlib.Path], dest_folder : Artifactory
     errors = []
     for filepath in files:
         try:
-            is_summary = check_is_summary_file(filepath)
+            is_summary = check_is_docusign_combined_file(filepath)
             if is_summary:
                 for file in is_summary:
-                    deploy_file_w_params(dest_folder, file.as_posix())
+                    deploy_file_w_params(dest_folder, filepath)
             else:
-                deploy_file_w_params(dest_folder, file.as_posix())
+                deploy_file_w_params(dest_folder, filepath)
         except Exception as e:
             errors.append(f"{filepath.name}: {str(e)}")
     return errors
 
-def deploy_file_w_params(dest_folder : ArtifactoryPath, src_filepath : str):
-    params = {}
-    if src_filepath.lower().endswith(".pdf"):
-        pass
-
+def deploy_file_w_params(dest_folder : ArtifactoryPath, src_filepath : pathlib.Path):
+    params = get_file_parameters(src_filepath)
+    src_str = src_filepath.as_posix()
     dest_folder.deploy_file(
-        src_filepath,
+        src_str,
         parameters=params
     )
 
+def _is_docusigned(path : pathlib.Path) -> bool:
+    is_docusigned_key = b"(Digitally verifiable PDF exported from www.docusign.com)"
+    if not path.exists():
+        return False
+    if not path.name.upper().endswith(".PDF"):
+        return False
+    with path.open("rb") as f:
+        return is_docusigned_key in f.read()
+    
+def _is_approval_cover_page(path : pathlib.Path) -> bool:
+    """Look for QF0472 / QF0035 / QF0231 reference in path"""
+    approval_cover_page_forms = ["QF0472", "QF0035", "QF0231"]
+    if not isinstance(path, pathlib.Path):
+        path = pathlib.Path(path)
+    if not path.exists():
+        return False
+    if not path.name.upper().endswith(".PDF"):
+        return False
+    pdf = pymupdf.open( path.expanduser() )
+    for page in pdf:
+        page_text = page.get_text()
+        if any([form_no in page_text for form_no in approval_cover_page_forms]):
+            return True
+    return False
 
-def make_folder(folderpath : ArtifactoryPath):
-    folderpath.mkdir()
+def _get_document_size(pdf_path : pathlib.Path):
+    # Read PDF dimensions in mm
+    doc = pymupdf.open(pdf_path.expanduser())
+    page = doc[0]
+    rect = page.rect
+    width_mm = rect.width * 0.352778
+    height_mm = rect.height * 0.352778
+    actual_size = (width_mm, height_mm)
+    # Find closest match from standard sizes (check both portrait and landscape)
+    closest = min(
+        STANDARD_PAGE_SIZES,
+        key=lambda s: min(
+        math.hypot(s[0] - actual_size[0], s[1] - actual_size[1]), # portrait
+        math.hypot(s[1] - actual_size[0], s[0] - actual_size[1]) # landscape
+        )
+    )
+    return closest[2] # Return just the name
+
+def get_file_parameters(path : pathlib.Path) -> dict:
+    parameters = {
+        "is_summary" : "False",
+        "is_approval_cover_page" : "False",
+        "has_signatures" : "False", 
+        "page_size" : "",
+        "is_pdf" : "False",
+        "is_parasolid" : "False",
+        "is_zip" : "False",
+        "doc_number" : "", #  (just so I don’t have to recalculate it every time - actually, does this mean I need to update the parameters whenever I rename? Probably yeah? Maybe de scope.. )
+        "doc_rev" : "",
+        "doc_title" : "", 
+        "doc_extension" : "" 
+    }
+    parameters["doc_number"], parameters["doc_rev"], parameters["doc_title"], parameters["doc_extension"] =\
+        get_doc_no(path.name)
+    if  parameters["doc_extension"] == "PDF":
+        parameters["is_pdf"] = "True"
+        parameters["page_size"] = _get_document_size(path)
+        if "_summary" in path.name.lower():
+            parameters["is_summary"] = "True"
+        else:
+            parameters["is_approval_cover_page"] = str(_is_approval_cover_page(path))
+            parameters["has_signatures"] = str(_is_docusigned(path))
+    if path.name.upper().endswith(".ZIP"):
+        parameters["is_zip"] = "True"
+    return parameters

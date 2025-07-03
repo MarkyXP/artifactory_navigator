@@ -111,3 +111,6 @@ def find(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
     if len(query) == 64:
         return _find_sha256(conn, query)
     return _find_all(conn, query)
+
+def make_folder(folderpath : ArtifactoryPath):
+    folderpath.mkdir()

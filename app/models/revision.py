@@ -8,16 +8,14 @@ class ReVision_Response():
         DOC_NUMBER          : e.g. "091.1700.000"
         DOC_REVISION        : e.g. "B01"
         DOC_NAME_FULL       : e.g. "BOND-PRIME PM Add Kit - UK"
-        DOC_IS_CO_APPROVED  : e.g. 1
-        DOC_IS_OBSOLETE     : e.g. 0
-        DATE_APPROVED       :
-        DATE_OBSOLETE       :
+        
     """
     CR_ID : int
     DOC_NUMBER : str
     DOC_REVISION : str
     DOC_NAME_FULL : str
-    DOC_IS_CO_APPROVED : int
-    DOC_IS_OBSOLETE : int
-    DATE_APPROVED : str
-    DATE_OBSOLETE : str
+    DOC_LOCATION : str
+    DOC_IS_PDF : bool
+    DOC_IS_CD : bool
+    DOC_IS_ZIP : bool
+    DOC_IN_AF : bool
