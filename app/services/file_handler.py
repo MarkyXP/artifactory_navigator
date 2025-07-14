@@ -1,5 +1,6 @@
 import pathlib
 import shutil
+import re
 import subprocess
 import zipfile
 from typing import List
@@ -55,6 +56,9 @@ def check_is_docusign_combined_file(src : pathlib.Path | str):
     if len(summary_files) != 1 or len(signed_docs) != 1:
         return False
     signed_doc = signed_docs[0]
+    signed_doc_renamed_double_underscore = re.sub(r"[^a-zA-Z0-9]", "_", signed_doc.stem)
+    signed_doc_renamed = re.sub(r"\_+", "_", signed_doc_renamed_double_underscore)
+    signed_doc = signed_doc.rename(signed_doc.with_stem(signed_doc_renamed))
     new_summary_doc = signed_doc.parent / (signed_doc.stem + "_Summary.pdf")
     summary_files[0].rename(new_summary_doc)
     return (
@@ -85,7 +89,7 @@ def upload_formatted_files(files : List[pathlib.Path], dest_folder : Artifactory
             is_summary = check_is_docusign_combined_file(filepath)
             if is_summary:
                 for file in is_summary:
-                    deploy_file_w_params(dest_folder, filepath)
+                    deploy_file_w_params(dest_folder, file)
             else:
                 deploy_file_w_params(dest_folder, filepath)
         except Exception as e:
@@ -94,6 +98,10 @@ def upload_formatted_files(files : List[pathlib.Path], dest_folder : Artifactory
 
 def deploy_file_w_params(dest_folder : ArtifactoryPath, src_filepath : pathlib.Path):
     params = get_file_parameters(src_filepath)
+    # Consider making this more opinionated?
+    # src_doc_renamed_double_underscore = re.sub(r"[^a-zA-Z0-9]", "_", src_filepath.stem)
+    # src_doc_renamed = re.sub(r"\_+", "_", src_doc_renamed_double_underscore)
+    # src_str = src_str.rename(src_doc_renamed)
     src_str = src_filepath.as_posix()
     dest_folder.deploy_file(
         src_str,
@@ -141,7 +149,7 @@ def _get_document_size(pdf_path : pathlib.Path):
         math.hypot(s[1] - actual_size[0], s[0] - actual_size[1]) # landscape
         )
     )
-    return closest[2] # Return just the name
+    return closest[2] # Return just the name (e.g. 'A0')
 
 def get_file_parameters(path : pathlib.Path) -> dict:
     parameters = {

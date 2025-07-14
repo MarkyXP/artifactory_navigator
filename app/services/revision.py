@@ -11,6 +11,8 @@ _session = Session()
 _session.verify = CONFIG.HTTP_CERT_FNAME
 _dhfr_regex = re.compile(r"(DHFR\.\d{4,5}(?:\.\d{4})?)\.([A-Z]\d{2})")
 _dmr_regex = re.compile(r"([A-Z]{0,2}\d{2,4}\.\d{4}\.\d{3})\.?([A-Z]{0,2}\d{2})")
+_oem_regex = re.compile(r"(OEM\d{2,5})\.(\d{1,2})")
+_lbs_oem_regex = re.compile(r"(LBS\d{6})\.(\d{2})")
 
 
 def get_drawings_for_cr(cr_number : int) -> List[ReVision_Response]:
@@ -35,7 +37,7 @@ def get_drawings_for_cr(cr_number : int) -> List[ReVision_Response]:
             DOC_IS_PDF = dwg["RV_FILE_PDF"] == 1,
             DOC_IS_CD = dwg["RV_FILE_CD"] == 1,
             DOC_IS_ZIP = dwg["RV_FILE_ZIP"] == 1,
-            DOC_IN_AF = "artifactory" in dwg["RV_FILE_OTHER_DESC"].lower()
+            DOC_IN_AF = "art" in dwg["RV_DOC_LOCATION"].lower()
         ) for dwg in drawings
     ]
     return drawing_fmt
@@ -59,12 +61,20 @@ def get_doc_no(filename : str) -> Tuple[str, str, str, str]:
     name_alphanum = re.sub(r"\.+", r".", name_alphanum_raw)
     dhfr = re.findall(_dhfr_regex, name_alphanum)
     dmr = re.findall(_dmr_regex, name_alphanum)
+    oem = re.findall(_oem_regex, name_alphanum)
+    lbs_oem = re.findall(_lbs_oem_regex, name_alphanum)
     if dhfr:
         doc_no, doc_rev = dhfr[0]
         name_preamble = f"{doc_no}.+?{doc_rev}"
         doc_no = doc_no.replace(".", "_")
     elif dmr:
         doc_no, doc_rev = dmr[0]
+        name_preamble = f"{doc_no}.+?{doc_rev}"
+    elif oem:
+        doc_no, doc_rev = oem[0]
+        name_preamble = f"{doc_no}.+?{doc_rev}"
+    elif lbs_oem:
+        doc_no, doc_rev = lbs_oem[0]
         name_preamble = f"{doc_no}.+?{doc_rev}"
     else:
         doc_no, doc_rev = "", ""

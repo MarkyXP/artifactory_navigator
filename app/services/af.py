@@ -50,6 +50,29 @@ def get_folder_contents_aql(repo_name : str, foldername : str):
     ]
     return aqlargs
 
+def find_folders(conn : ArtifactoryPath, repo : str, foldername_substring : str) -> List[ArtifactoryPath]:
+    aql_ary = [
+        "items.find",
+        {
+            "$and" : 
+            [
+                {"type" : "folder"},
+                {"name" : {"$match" : f"*{foldername_substring}*"}},
+                {"repo" : {"$match" : f"*{repo}*"}},
+            ]
+        },
+        ".include",
+        ["repo", "path", "name"],
+        ".sort",
+        {"$asc": ["name"]}
+    ]
+    folders = conn.aql(*aql_ary)
+    af_paths = [
+        conn / folder["repo"] / folder["path"] / folder["name"]
+        for folder in folders
+    ]
+    return af_paths
+
 def _find_sha_aql(sha : str):
     aqlargs = [
         "items.find",
