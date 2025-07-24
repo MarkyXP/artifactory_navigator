@@ -44,6 +44,34 @@ class FileExplorer(wx.Frame):
         hbox1.Add(self.dir_text, 1, wx.EXPAND|wx.ALL, 5)
         vbox.Add(hbox1, 0, wx.EXPAND)
         
+        # Buttons
+        hbox2 = wx.BoxSizer(wx.HORIZONTAL)
+        # Back
+        # Forward
+        up_icon = wx.Bitmap("Assets/Icons/Up.png", wx.BITMAP_TYPE_ANY)
+        self.up_button = wx.Button(panel, label="Up")
+        self.up_button.SetBitmapLabel(up_icon)
+        self.up_button.SetToolTip("Go up a directory")
+        self.new_folder_button = wx.Button(panel, label="New Folder")
+        # Search
+        # Go To CR
+        self.copy_button = wx.Button(panel, label="Copy")
+        # Download
+        self.paste_button = wx.Button(panel, label="Paste")
+        # Upload
+        self.open_button = wx.Button(panel, label="Open")
+        self.delete_button = wx.Button(panel, label="Delete")
+        # DocuSign
+        # ReVision Report
+        
+        hbox2.Add(self.up_button, 0, wx.ALL, 5)
+        hbox2.Add(self.open_button, 0, wx.ALL, 5)
+        hbox2.Add(self.copy_button, 0, wx.ALL, 5)
+        hbox2.Add(self.paste_button, 0, wx.ALL, 5)
+        hbox2.Add(self.delete_button, 0, wx.ALL, 5)
+        hbox2.Add(self.new_folder_button, 0, wx.ALL, 5)
+        vbox.Add(hbox2, 0, wx.ALIGN_CENTER)
+        
         # File list with drag source support
         self.file_list = wx.ListCtrl(panel, style=wx.LC_REPORT|wx.BORDER_SUNKEN|wx.LC_EDIT_LABELS)
         self.file_list.InsertColumn(0, "Name", width=400)
@@ -53,27 +81,31 @@ class FileExplorer(wx.Frame):
         self.file_list.InsertColumn(4, "Date Updated", width=100)
         self.file_list.InsertColumn(5, "Deployed By", width=135)
         self.file_list.InsertColumn(6, "Sha256", width=100)
-        
+                
+        # Search panel (initially hidden)
+        self.search_panel = wx.CollapsiblePane(panel, label="Search")
+        self.search_panel.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.on_search_pane_change)
+        search_pane = self.search_panel.GetPane()
+        search_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.search_input = wx.TextCtrl(search_pane)
+        self.search_results = wx.ListCtrl(search_pane, style=wx.LC_REPORT|wx.BORDER_SUNKEN)
+        self.search_results.InsertColumn(0, "Location", width=400)
+        self.search_results.InsertColumn(1, "Name", width=400)
+        self.search_results.InsertColumn(2, "Size", width=70)
+        self.search_results.InsertColumn(3, "Date Modified", width=100)
+        self.search_results.InsertColumn(4, "Date Updated", width=100)
+        self.search_results.InsertColumn(5, "Deployed By", width=135)
+        self.search_results.InsertColumn(6, "Sha256", width=100)
+        search_sizer.Add(self.search_input, 0, wx.EXPAND|wx.ALL, 5)
+        search_sizer.Add(self.search_results, 1, wx.EXPAND|wx.ALL, 5)
+
+        search_pane.SetSizer(search_sizer)
+        vbox.Add(self.search_panel, 0, wx.EXPAND)
+
         # Make the list a drag source
         self.file_list.Bind(wx.EVT_LIST_BEGIN_DRAG, self.on_begin_drag)
         vbox.Add(self.file_list, 1, wx.EXPAND|wx.ALL, 5)
-        
-        # Buttons
-        hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        self.up_button = wx.Button(panel, label="Up")
-        self.open_button = wx.Button(panel, label="Open")
-        self.copy_button = wx.Button(panel, label="Copy")
-        self.paste_button = wx.Button(panel, label="Paste")
-        self.delete_button = wx.Button(panel, label="Delete")
-        self.new_folder_button = wx.Button(panel, label="New Folder")
-        
-        hbox2.Add(self.up_button, 0, wx.ALL, 5)
-        hbox2.Add(self.open_button, 0, wx.ALL, 5)
-        hbox2.Add(self.copy_button, 0, wx.ALL, 5)
-        hbox2.Add(self.paste_button, 0, wx.ALL, 5)
-        hbox2.Add(self.delete_button, 0, wx.ALL, 5)
-        hbox2.Add(self.new_folder_button, 0, wx.ALL, 5)
-        vbox.Add(hbox2, 0, wx.ALIGN_CENTER)
         
         # Event bindings
         self.file_list.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
@@ -88,9 +120,11 @@ class FileExplorer(wx.Frame):
         self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.on_end_rename)
 
         # Key bindings
+        panel.SetFocus()
         self.file_list.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         
         panel.SetSizer(vbox)
+        self.search_panel.Collapse(True)  # Initially collapse the search pane
 
     def load_directory(self, files_to_highlight : List[str] = ()):
         """Load the contents of the current directory into the list
@@ -438,7 +472,8 @@ class FileExplorer(wx.Frame):
         elif control_down and shift_down and (key_code == ord("N")):
             self.start_make_folder()
         elif control_down and (key_code == ord("F")):
-            self.start_search()
+            # self.start_search()
+            self.search_panel.Collapse(not self.search_panel.IsCollapsed())
         else:
             event.Skip()  # Allow other key events to be processed
 
@@ -506,6 +541,11 @@ class FileExplorer(wx.Frame):
             self.current_dir = item.parent
             shas_to_highlight = [item.stat().sha256]
             self.load_directory(shas_to_highlight)
+    
+
+    def on_search_pane_change(self, event):
+        if not self.search_panel.IsCollapsed():
+            self.search_input.SetFocus()
 
 class FileDropTarget(wx.FileDropTarget):
     """Handles both drag-in and drag-out operations"""
