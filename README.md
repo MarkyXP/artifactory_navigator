@@ -41,6 +41,13 @@ This is a simple file explorer for navigating Artifactory:
 <div class="page"/>
 
 ## Privacy & Telemetry:
+ - The users password is encrypted using Fernet
+   - This secret is not included in this repo, ideally if you need to release a new copy of this app and you DON'T have the key, well, you should generate a new one, and the user will have to re-enter their password
+   ```python
+    from cryptography.fernet import Fernet
+    Fernet.generate_key()
+   ```
+   - And put this new key in .env (`APP_SECRET="22...="`)
  - Note that this software does track usage in a a way that tried to be compliant with GDPR, this means:
     - No personally identifiable information is collected, or any information that could be used to track back to a user or group of users (e.g. user name, computer name, ip address, etc)
  - The information collected is intended to create justification for the time spent working on LBS AF Navigator, for example if 2hours is being saved per week using this tool it may be used as justification that more time should be spent maintaining and upgrading it.

@@ -21,8 +21,14 @@ def _test_af_creds(uname: str, pw: str) -> ArtifactoryPath | None:
     try:
         conn.get_repositories()
     # Bad credentials
-    except dohq_artifactory.exception.ArtifactoryException:
-        return None
+    except dohq_artifactory.exception.ArtifactoryException as e:
+        #TODO: I SHOULD RETURN THE ERROR
+        msg = f"Error: {e.args[0]}"
+        if "404" in e.args[0]:
+            msg = "Error: Could not connect to Artifactory"
+        elif "Bad credentials" in e.args[0]:
+            msg = "Invalid username or password"
+        return msg
     # Credentials were fine
     return conn
 

@@ -62,7 +62,9 @@ class LoginDialog(wx.Dialog):
         username = self.user_text.GetValue()
         password = self.pass_text.GetValue()
         conn = self.test_af_creds(username, password)
-        if conn:
+        if isinstance(conn, str):
+            wx.MessageBox(conn, "Error", wx.OK | wx.ICON_ERROR)
+        else:
             remember_me = self.remember_checkbox.GetValue()
             # Close up
             self.callback_on_complete(
@@ -72,8 +74,6 @@ class LoginDialog(wx.Dialog):
                 conn
             )
             self.Destroy()
-        else:
-            wx.MessageBox("Invalid username or password", "Error", wx.OK | wx.ICON_ERROR)
     
     def on_cancel(self, event):
         self.Destroy()

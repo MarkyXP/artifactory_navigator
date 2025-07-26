@@ -4,3 +4,4 @@ cryptography     # Storing user creds
 requests         # Used to add cert to AF
 dohq-artifactory # Talking to AF
 azure-cosmos     # Logging
+PyMuPDF          # Analyzing PDFs

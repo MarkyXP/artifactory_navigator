@@ -27,6 +27,12 @@ except Exception as _:
     _disable_logging = True
 
 def set_auth(username : str, pw : str):
+    """
+    Store the users credentials to get through the
+    LBS firewall to do my logging.
+    """
+    if _disable_logging:
+        return
     global _auth_acquired
     _session.auth = (username, pw)
     _auth_acquired = True

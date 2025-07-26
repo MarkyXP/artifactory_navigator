@@ -1,0 +1,7 @@
+[project]
+name = "artifactory-navigator"
+version = "0.1.0"
+description = "A Windows native application to interface with Artifactory"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []

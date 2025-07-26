@@ -22,7 +22,9 @@ class FileExplorer(wx.Frame):
         self.SetIcon(icon)
         
         self.conn = af_conn
-        self.current_dir : ArtifactoryPath = self.conn.get_repositories()[33].path
+        repos = self.conn.get_repositories()
+        id = min(len(repos)-1, 33)
+        self.current_dir : ArtifactoryPath = repos[id].path
         self.current_dir = AF.open(
             self.conn, CONFIG.AF_URL
         )
