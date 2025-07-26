@@ -21,7 +21,7 @@ class FileExplorer(wx.Frame):
         self.SetIcon(icon)
         
         self.conn = af_conn
-        self.current_dir : ArtifactoryPath = self.conn.get_repositories()[33].path
+        # self.current_dir : ArtifactoryPath = self.conn.get_repositories()[33].path
         self.current_dir = AF.open(
             self.conn, CONFIG.AF_URL
         )
@@ -31,6 +31,18 @@ class FileExplorer(wx.Frame):
         self.file_list.SetDropTarget(FileDropTarget(self))
         self.items : List[AF_Result] = []
         self.load_directory()
+    
+    def _create_nav_button(self, panel : wx.Panel, icon_name : str, tooltip : str):
+        button_size = wx.Size(23,23)
+        icon_bmp = wx.Bitmap(
+            f"Assets/Icons/{icon_name}_Dark.png",
+            wx.BITMAP_TYPE_ANY
+        )
+        button = wx.Button(panel, size=button_size)
+        button.SetBitmapLabel(icon_bmp)
+        button.SetToolTip(tooltip)
+        return button
+
     
     def create_ui(self):
         panel = wx.Panel(self)
@@ -44,33 +56,50 @@ class FileExplorer(wx.Frame):
         hbox1.Add(self.dir_text, 1, wx.EXPAND|wx.ALL, 5)
         vbox.Add(hbox1, 0, wx.EXPAND)
         
-        # Buttons
+        # Navigation Buttons
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        # Back
-        # Forward
-        up_icon = wx.Bitmap("Assets/Icons/Up.png", wx.BITMAP_TYPE_ANY)
-        self.up_button = wx.Button(panel, label="Up")
-        self.up_button.SetBitmapLabel(up_icon)
-        self.up_button.SetToolTip("Go up a directory")
-        self.new_folder_button = wx.Button(panel, label="New Folder")
-        # Search
-        # Go To CR
-        self.copy_button = wx.Button(panel, label="Copy")
-        # Download
-        self.paste_button = wx.Button(panel, label="Paste")
-        # Upload
-        self.open_button = wx.Button(panel, label="Open")
-        self.delete_button = wx.Button(panel, label="Delete")
-        # DocuSign
-        # ReVision Report
-        
-        hbox2.Add(self.up_button, 0, wx.ALL, 5)
-        hbox2.Add(self.open_button, 0, wx.ALL, 5)
-        hbox2.Add(self.copy_button, 0, wx.ALL, 5)
-        hbox2.Add(self.paste_button, 0, wx.ALL, 5)
-        hbox2.Add(self.delete_button, 0, wx.ALL, 5)
-        hbox2.Add(self.new_folder_button, 0, wx.ALL, 5)
+        self.back_button = self._create_nav_button(panel, "Back", "Back a directory")
+        self.forward_button = self._create_nav_button(panel, "Forward", "Forward a directory")
+        self.up_button = self._create_nav_button(panel, "Up", "Go up a directory")
+        self.new_folder_button = self._create_nav_button(panel, "New_Folder", "New Folder")
+        self.search_button = self._create_nav_button(panel, "Search", "Find File")
+        self.goto_button = self._create_nav_button(panel, "Goto", "Open CR/XECO Folder")
+        self.copy_button = self._create_nav_button(panel, "Copy", "Copy Files")
+        self.download_button = self._create_nav_button(panel, "Download", "Download Files")
+        self.paste_button = self._create_nav_button(panel, "Paste", "Paste Files from Clipboard")
+        self.upload_button = self._create_nav_button(panel, "Upload", "Upload files")
+        self.open_button = self._create_nav_button(panel, "Open", "Open files")
+        self.delete_button = self._create_nav_button(panel, "Delete", "Delete files")
+        self.docusign_button = self._create_nav_button(panel, "DocuSign", "Transfer to DocuSign")
+        self.revision_button = self._create_nav_button(panel, "ReVision", "Compare CR to ReVision")
+        btns = [
+            self.back_button,
+            self.forward_button,
+            self.up_button,
+            self.new_folder_button,
+            self.search_button,
+            self.goto_button,
+            self.copy_button,
+            self.download_button,
+            self.paste_button,
+            self.upload_button,
+            self.open_button,
+            self.delete_button,
+            self.docusign_button,
+            self.revision_button
+        ]
+        for btn in btns:
+            hbox2.Add(btn, 0, wx.ALL, 1)
         vbox.Add(hbox2, 0, wx.ALIGN_CENTER)
+        # Event bindings
+        self.up_button.Bind(wx.EVT_BUTTON, self.on_up)
+        self.new_folder_button.Bind(wx.EVT_BUTTON, self.start_make_folder)
+        self.search_button.Bind(wx.EVT_BUTTON, self.start_search)
+        # self.goto_button.Bind(wx.EVT_BUTTON, pass)
+        self.copy_button.Bind(wx.EVT_BUTTON, self.on_copy)
+        self.paste_button.Bind(wx.EVT_BUTTON, self.on_paste)
+        self.open_button.Bind(wx.EVT_BUTTON, self.on_open)
+        self.delete_button.Bind(wx.EVT_BUTTON, self.on_delete)
         
         # File list with drag source support
         self.file_list = wx.ListCtrl(panel, style=wx.LC_REPORT|wx.BORDER_SUNKEN|wx.LC_EDIT_LABELS)
@@ -109,12 +138,6 @@ class FileExplorer(wx.Frame):
         
         # Event bindings
         self.file_list.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
-        self.up_button.Bind(wx.EVT_BUTTON, self.on_up)
-        self.open_button.Bind(wx.EVT_BUTTON, self.on_open)
-        self.copy_button.Bind(wx.EVT_BUTTON, self.on_copy)
-        self.paste_button.Bind(wx.EVT_BUTTON, self.on_paste)
-        self.delete_button.Bind(wx.EVT_BUTTON, self.on_delete)
-        self.new_folder_button.Bind(wx.EVT_BUTTON, self.start_make_folder)
         self.file_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_item_activated)
         self.Bind(wx.EVT_LIST_BEGIN_LABEL_EDIT, self.on_start_rename)
         self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.on_end_rename)
