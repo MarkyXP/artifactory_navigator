@@ -110,13 +110,16 @@ class FileExplorer(wx.Frame):
         self.file_list.InsertColumn(4, "Date Updated", width=100)
         self.file_list.InsertColumn(5, "Deployed By", width=135)
         self.file_list.InsertColumn(6, "Sha256", width=100)
+
+        # Make the list a drag source
+        self.file_list.Bind(wx.EVT_LIST_BEGIN_DRAG, self.on_begin_drag)
+        vbox.Add(self.file_list, 1, wx.EXPAND|wx.ALL, 5)
                 
         # Search panel (initially hidden)
         self.search_panel = wx.CollapsiblePane(panel, label="Search")
         self.search_panel.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.on_search_pane_change)
         search_pane = self.search_panel.GetPane()
         search_sizer = wx.BoxSizer(wx.VERTICAL)
-
         self.search_input = wx.TextCtrl(search_pane)
         self.search_results = wx.ListCtrl(search_pane, style=wx.LC_REPORT|wx.BORDER_SUNKEN)
         self.search_results.InsertColumn(0, "Location", width=400)
@@ -128,13 +131,8 @@ class FileExplorer(wx.Frame):
         self.search_results.InsertColumn(6, "Sha256", width=100)
         search_sizer.Add(self.search_input, 0, wx.EXPAND|wx.ALL, 5)
         search_sizer.Add(self.search_results, 1, wx.EXPAND|wx.ALL, 5)
-
         search_pane.SetSizer(search_sizer)
         vbox.Add(self.search_panel, 0, wx.EXPAND)
-
-        # Make the list a drag source
-        self.file_list.Bind(wx.EVT_LIST_BEGIN_DRAG, self.on_begin_drag)
-        vbox.Add(self.file_list, 1, wx.EXPAND|wx.ALL, 5)
         
         # Event bindings
         self.file_list.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
