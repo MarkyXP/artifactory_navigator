@@ -112,7 +112,7 @@ class FileExplorer(wx.Frame):
                 AF_Result(**item) for item in items_dict if not item["name"] == "."
             ]
             self.selecting_offset = -1
-        except:
+        except Exception as e:
             repo_list = self.conn.get_repositories()
             self.dir_text.SetValue("/")
             self.items = [
@@ -553,6 +553,7 @@ class FileExplorer(wx.Frame):
         is_enough = len(numbers_only_query) > 3
         if is_enter or is_enough:
             items_dict = AF.find(self.conn, query)
+            pass
         else:
             event.Skip()  # Allow other key events to be processed
 

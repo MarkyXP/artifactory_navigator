@@ -44,10 +44,9 @@ def get_folder_contents_aql(repo_name : str, foldername : str):
     aqlargs = [
         "items.find",args,
         ".include",
-        ["repo", "path", "name", "size", "sha256", "modified", "updated", "created_by", "modified_by", "type"],
-        ".sort",
-        {"$asc": ["name"]}
+        ["repo", "path", "name", "size", "sha256", "modified", "updated", "created_by", "modified_by", "type"]
     ]
+    #TODO: Implement sorting of the results
     return aqlargs
 
 def _find_sha_aql(sha : str):
@@ -55,10 +54,9 @@ def _find_sha_aql(sha : str):
         "items.find",
         {"sha256" : sha},
         ".include",
-        ["repo", "path", "name"],
-        ".sort",
-        {"$asc": ["name"]}
+        ["repo", "path", "name"]
     ]
+    #TODO: Implement sorting of the results
     return aqlargs
 
 def _find_sha256(conn : ArtifactoryPath, sha : str) -> List[ArtifactoryPath]:
@@ -88,11 +86,10 @@ def _find_all(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
         {"$and" : [ {"name" : {"$match" : f"*{number}*"}} for number in query_numbers ] }
         ,
         ".include",
-        ["repo", "path", "name"],
-        ".sort",
-        {"$asc": ["name"]}
+        ["repo", "path", "name"]
     ]
     docs = conn.aql(*aql_ary)
+    #TODO: Implement sorting of the results
     matches = deque()
     for doc in docs:
         checks = [word in doc['name'].lower() for word in query_words]
