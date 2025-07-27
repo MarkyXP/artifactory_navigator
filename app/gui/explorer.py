@@ -80,7 +80,7 @@ class FileExplorer(wx.Frame):
         self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.on_end_rename)
         self.file_list.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         # Bindings - Search
-        self.search_input.Bind(wx.EVT_KEY_DOWN, self.on_search_key_down)
+        self.search_input.Bind(wx.EVT_KEY_UP, self.on_search_key_down)
         # Global keybindings
         accel_tbl = wx.AcceleratorTable([(wx.ACCEL_CTRL, ord("F"), wx.ID_FIND)])
         self.SetAcceleratorTable(accel_tbl)
@@ -552,8 +552,19 @@ class FileExplorer(wx.Frame):
         is_enter = key_code == wx.WXK_NUMPAD_ENTER or key_code == wx.WXK_RETURN
         is_enough = len(numbers_only_query) > 3
         if is_enter or is_enough:
-            items_dict = AF.find(self.conn, query)
-            pass
+            items = AF.find(self.conn, query)
+            self.search_results.DeleteAllItems()
+            for i, item in enumerate(items):
+                path = item["repo"] + "/" + item["path"]
+                index = self.search_results.InsertItem(i + 1, path)
+                self.search_results.SetItem(index, 1, item["name"])
+                self.search_results.SetItem(index, 2, self.format_size(item["size"]))
+                self.search_results.SetItem(index, 3, item["modified"])
+                self.search_results.SetItem(index, 4, item["updated"])
+                self.search_results.SetItem(
+                    index, 5, item["modified_by"] or item["created_by"] or ""
+                )
+                self.search_results.SetItem(index, 6, item["sha256"] or "")
         else:
             event.Skip()  # Allow other key events to be processed
 

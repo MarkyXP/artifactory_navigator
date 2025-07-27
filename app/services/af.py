@@ -86,7 +86,7 @@ def _find_all(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
         {"$and" : [ {"name" : {"$match" : f"*{number}*"}} for number in query_numbers ] }
         ,
         ".include",
-        ["repo", "path", "name"]
+        ["repo", "path", "name", "size", "modified", "updated", "modified_by", "created_by", "sha256"]
     ]
     docs = conn.aql(*aql_ary)
     #TODO: Implement sorting of the results
@@ -94,8 +94,8 @@ def _find_all(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
     for doc in docs:
         checks = [word in doc['name'].lower() for word in query_words]
         if all( checks ):
-            doc_af_path = conn / doc["repo"] / doc["path"] / doc["name"]
-            matches.append( doc_af_path )
+            # doc_af_path = conn / doc["repo"] / doc["path"] / doc["name"]
+            matches.append( doc )
     return list(matches)
 
 def find(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
