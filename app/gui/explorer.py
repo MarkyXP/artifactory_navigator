@@ -7,6 +7,7 @@ from artifactory import ArtifactoryPath
 
 from app.core.config import CONFIG
 from app.core.telemetry import log
+from app.gui import explorer_elements as elements
 from app.services import af as AF
 from app.services import file_handler
 from app.services import explorer as EXPLORER
@@ -21,7 +22,6 @@ class FileExplorer(wx.Frame):
         self.SetIcon(icon)
         
         self.conn = af_conn
-        # self.current_dir : ArtifactoryPath = self.conn.get_repositories()[33].path
         self.current_dir = AF.open(
             self.conn, CONFIG.AF_URL
         )
@@ -32,120 +32,69 @@ class FileExplorer(wx.Frame):
         self.items : List[AF_Result] = []
         self.load_directory()
     
-    def _create_nav_button(self, panel : wx.Panel, icon_name : str, tooltip : str):
-        button_size = wx.Size(23,23)
-        icon_bmp = wx.Bitmap(
-            f"Assets/Icons/{icon_name}_Dark.png",
-            wx.BITMAP_TYPE_ANY
-        )
-        button = wx.Button(panel, size=button_size)
-        button.SetBitmapLabel(icon_bmp)
-        button.SetToolTip(tooltip)
-        return button
-
-    
     def create_ui(self):
+        # -------------------- splitter: Separate segments --------------------
         panel = wx.Panel(self)
-        vbox = wx.BoxSizer(wx.VERTICAL)
-        
-        # Path controls
-        hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-        self.dir_label = wx.StaticText(panel, label="Current Directory:")
-        self.dir_text = wx.TextCtrl(panel, style=wx.TE_READONLY)
-        hbox1.Add(self.dir_label, 0, wx.ALIGN_CENTER|wx.ALL, 5)
-        hbox1.Add(self.dir_text, 1, wx.EXPAND|wx.ALL, 5)
-        vbox.Add(hbox1, 0, wx.EXPAND)
-        
-        # Navigation Buttons
-        hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        self.back_button = self._create_nav_button(panel, "Back", "Back a directory")
-        self.forward_button = self._create_nav_button(panel, "Forward", "Forward a directory")
-        self.up_button = self._create_nav_button(panel, "Up", "Go up a directory")
-        self.new_folder_button = self._create_nav_button(panel, "New_Folder", "New Folder")
-        self.search_button = self._create_nav_button(panel, "Search", "Find File")
-        self.goto_button = self._create_nav_button(panel, "Goto", "Open CR/XECO Folder")
-        self.copy_button = self._create_nav_button(panel, "Copy", "Copy Files")
-        self.download_button = self._create_nav_button(panel, "Download", "Download Files")
-        self.paste_button = self._create_nav_button(panel, "Paste", "Paste Files from Clipboard")
-        self.upload_button = self._create_nav_button(panel, "Upload", "Upload files")
-        self.open_button = self._create_nav_button(panel, "Open", "Open files")
-        self.delete_button = self._create_nav_button(panel, "Delete", "Delete files")
-        self.docusign_button = self._create_nav_button(panel, "DocuSign", "Transfer to DocuSign")
-        self.revision_button = self._create_nav_button(panel, "ReVision", "Compare CR to ReVision")
-        btns = [
-            self.back_button,
-            self.forward_button,
-            self.up_button,
-            self.new_folder_button,
-            self.search_button,
-            self.goto_button,
-            self.copy_button,
-            self.download_button,
-            self.paste_button,
-            self.upload_button,
-            self.open_button,
-            self.delete_button,
-            self.docusign_button,
-            self.revision_button
-        ]
-        for btn in btns:
-            hbox2.Add(btn, 0, wx.ALL, 1)
-        vbox.Add(hbox2, 0, wx.ALIGN_CENTER)
-        # Event bindings
-        self.up_button.Bind(wx.EVT_BUTTON, self.on_up)
-        self.new_folder_button.Bind(wx.EVT_BUTTON, self.start_make_folder)
-        self.search_button.Bind(wx.EVT_BUTTON, self.start_search)
-        # self.goto_button.Bind(wx.EVT_BUTTON, pass)
-        self.copy_button.Bind(wx.EVT_BUTTON, self.on_copy)
-        self.paste_button.Bind(wx.EVT_BUTTON, self.on_paste)
-        self.open_button.Bind(wx.EVT_BUTTON, self.on_open)
-        self.delete_button.Bind(wx.EVT_BUTTON, self.on_delete)
-        
-        # File list with drag source support
-        self.file_list = wx.ListCtrl(panel, style=wx.LC_REPORT|wx.BORDER_SUNKEN|wx.LC_EDIT_LABELS)
-        self.file_list.InsertColumn(0, "Name", width=400)
-        self.file_list.InsertColumn(1, "Type", width=70)
-        self.file_list.InsertColumn(2, "Size", width=70)
-        self.file_list.InsertColumn(3, "Date Modified", width=100)
-        self.file_list.InsertColumn(4, "Date Updated", width=100)
-        self.file_list.InsertColumn(5, "Deployed By", width=135)
-        self.file_list.InsertColumn(6, "Sha256", width=100)
+        self.splitter = wx.SplitterWindow(
+            panel, style=wx.SP_LIVE_UPDATE | wx.SP_3DSASH
+        )
+        # ------- upper pane: path & navigation bar, main file explorer -------
+        nav_panel = wx.Panel(self.splitter)
+        nav_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.dir_label, self.dir_text = elements.make_path_bar(nav_panel, nav_sizer)
+        self.buttons = elements.make_navbar(nav_panel, nav_sizer)
+        self.file_list = elements.make_main_explorer(nav_panel, nav_sizer)
+        nav_panel.SetSizer(nav_sizer)
 
-        # Make the list a drag source
-        self.file_list.Bind(wx.EVT_LIST_BEGIN_DRAG, self.on_begin_drag)
-        vbox.Add(self.file_list, 1, wx.EXPAND|wx.ALL, 5)
-                
-        # Search panel (initially hidden)
-        self.search_panel = wx.CollapsiblePane(panel, label="Search")
-        self.search_panel.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.on_search_pane_change)
-        search_pane = self.search_panel.GetPane()
+        # --------------------- lower pane : search area ----------------------
+        search_panel = wx.Panel(self.splitter)
         search_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.search_input = wx.TextCtrl(search_pane)
-        self.search_results = wx.ListCtrl(search_pane, style=wx.LC_REPORT|wx.BORDER_SUNKEN)
-        self.search_results.InsertColumn(0, "Location", width=400)
-        self.search_results.InsertColumn(1, "Name", width=400)
-        self.search_results.InsertColumn(2, "Size", width=70)
-        self.search_results.InsertColumn(3, "Date Modified", width=100)
-        self.search_results.InsertColumn(4, "Date Updated", width=100)
-        self.search_results.InsertColumn(5, "Deployed By", width=135)
-        self.search_results.InsertColumn(6, "Sha256", width=100)
-        search_sizer.Add(self.search_input, 0, wx.EXPAND|wx.ALL, 5)
-        search_sizer.Add(self.search_results, 1, wx.EXPAND|wx.ALL, 5)
-        search_pane.SetSizer(search_sizer)
-        vbox.Add(self.search_panel, 0, wx.EXPAND)
-        
-        # Event bindings
+        # collapsible search bar
+        self.search_pane, self.search_input, self.search_results = elements.make_search(search_panel, search_sizer)
+        self.search_pane.Show(False)
+        # search text box inside the collapsible pane
+        search_panel.SetSizer(search_sizer)
+
+        # -------------------------- splitter set-up --------------------------
+        self.splitter.SplitHorizontally(nav_panel, search_panel)
+        # initially hide the search pane
+        self.splitter.SetSashPosition(-1)
+        self.splitter.SetMinimumPaneSize(120)   # so the sash can’t disappear
+
+        # ------------------ Add the Splitter to the window -------------------
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(self.splitter, 1, wx.EXPAND)
+        panel.SetSizer(main_sizer)
+
+        # -------------------------- Event Bindings ---------------------------
+        # Bindings - Navbar
+        self.buttons.UP.Bind(wx.EVT_BUTTON, self.on_up)
+        self.buttons.NEW_FOLDER.Bind(wx.EVT_BUTTON, self.start_make_folder)
+        self.buttons.SEARCH.Bind(wx.EVT_BUTTON, self.start_search)
+        # self.goto_button.Bind(wx.EVT_BUTTON, pass)
+        self.buttons.SEARCH.Bind(wx.EVT_BUTTON, self.on_copy)
+        self.buttons.PASTE.Bind(wx.EVT_BUTTON, self.on_paste)
+        self.buttons.OPEN.Bind(wx.EVT_BUTTON, self.on_open)
+        self.buttons.DELETE.Bind(wx.EVT_BUTTON, self.on_delete)
+        # Bindings - Main File Explorer
+        self.file_list.Bind(wx.EVT_LIST_BEGIN_DRAG, self.on_begin_drag)
         self.file_list.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
         self.file_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_item_activated)
         self.Bind(wx.EVT_LIST_BEGIN_LABEL_EDIT, self.on_start_rename)
         self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.on_end_rename)
-
+        # Bindings - Search
+        self.search_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.on_search_pane_change)
+        # self.search_input.Bind(wx.EVT_TEXT, self.on_search_text)
+        # Ctrl-F to show search
+        accel_tbl = wx.AcceleratorTable([
+            (wx.ACCEL_CTRL, ord('F'), wx.ID_FIND)
+        ])
+        self.SetAcceleratorTable(accel_tbl)
+        self.Bind(wx.EVT_MENU, self.on_search_toggle, id=wx.ID_FIND)
         # Key bindings
-        panel.SetFocus()
         self.file_list.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-        
-        panel.SetSizer(vbox)
-        self.search_panel.Collapse(True)  # Initially collapse the search pane
+        # Set the window to the foreground
+        panel.SetFocus()
 
     def load_directory(self, files_to_highlight : List[str] = ()):
         """Load the contents of the current directory into the list
@@ -563,10 +512,35 @@ class FileExplorer(wx.Frame):
             shas_to_highlight = [item.stat().sha256]
             self.load_directory(shas_to_highlight)
     
+    def on_search_toggle(self, evt=None):
+        """User pressed Ctrl-F - toggle the search pane."""
+        if self.search_pane.IsExpanded():
+            self.search_hide(evt)
+        else:
+            self.search_show(evt)
+    
+    def search_hide(self, evt):
+        self.search_pane.Show(False)
+        self.search_pane.Collapse()
+        self.on_search_pane_change(evt)
+        # Focus on the main explorer menu (not search bar)
+    
+    def search_show(self, evt):
+        self.search_pane.Show(True)
+        self.search_pane.Expand()
+        self.on_search_pane_change(evt)
 
-    def on_search_pane_change(self, event):
-        if not self.search_panel.IsCollapsed():
+    def on_search_pane_change(self, evt):
+        """Collapsible pane was opened/closed - adjust splitter."""
+        if self.search_pane.IsExpanded():
             self.search_input.SetFocus()
+            sash_pos = self.file_list.GetSize().GetHeight() - 200
+            splitter_min = self.splitter.MinimumPaneSize
+            self.splitter.SetSashPosition(max(splitter_min, sash_pos))
+        else:
+            self.file_list.SetFocus()
+            self.splitter.SetSashPosition(-1)
+        evt.Skip()
 
 class FileDropTarget(wx.FileDropTarget):
     """Handles both drag-in and drag-out operations"""
