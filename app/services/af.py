@@ -92,7 +92,7 @@ def _find_sha256(conn : ArtifactoryPath, sha : str) -> List[ArtifactoryPath]:
     ]
     return results_afpath
 
-def _find_all(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
+def _find_all(conn : ArtifactoryPath, query : str, limit : int = -1) -> List[ArtifactoryPath]:
     """
     Called by 'find', this searches for keywords across AF.
     Note: To support case insensitive search I just search for everything*,
@@ -111,6 +111,10 @@ def _find_all(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
         ".include",
         ["repo", "path", "name", "size", "modified", "updated", "modified_by", "created_by", "sha256"]
     ]
+    if limit > 0:
+        aql_ary += [
+            ".limit", limit
+        ]
     docs = conn.aql(*aql_ary)
     #TODO: Implement sorting of the results
     matches = deque()
@@ -121,7 +125,7 @@ def _find_all(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
             matches.append( doc )
     return list(matches)
 
-def find(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
+def find(conn : ArtifactoryPath, query : str, limit = -1) -> List[ArtifactoryPath]:
     """
     Searches for the query
      - If the query is 64characters long treats it as a sha256 checksum search
@@ -130,7 +134,7 @@ def find(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
     query = query.strip().lower()
     if len(query) == 64:
         return _find_sha256(conn, query)
-    return _find_all(conn, query)
+    return _find_all(conn, query, limit=limit)
 
 def make_folder(folderpath : ArtifactoryPath):
     folderpath.mkdir()

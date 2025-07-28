@@ -68,7 +68,7 @@ class FileExplorer(wx.Frame):
         self.buttons.UP.Bind(wx.EVT_BUTTON, self.on_up)
         self.buttons.NEW_FOLDER.Bind(wx.EVT_BUTTON, self.start_make_folder)
         self.buttons.SEARCH.Bind(wx.EVT_BUTTON, self.on_search_toggle)
-        # self.goto_button.Bind(wx.EVT_BUTTON, pass)
+        self.buttons.GOTO.Bind(wx.EVT_BUTTON, self.start_go_to)
         self.buttons.COPY.Bind(wx.EVT_BUTTON, self.on_copy)
         self.buttons.PASTE.Bind(wx.EVT_BUTTON, self.on_paste)
         self.buttons.OPEN.Bind(wx.EVT_BUTTON, self.on_open)
@@ -82,6 +82,7 @@ class FileExplorer(wx.Frame):
         self.file_list.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         # Bindings - Search
         self.search_input.Bind(wx.EVT_KEY_UP, self.on_search_key_down)
+        self.search_results.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_search_item_activated)
         # Global keybindings
         accel_tbl = wx.AcceleratorTable([(wx.ACCEL_CTRL, ord("F"), wx.ID_FIND)])
         self.SetAcceleratorTable(accel_tbl)
@@ -512,8 +513,8 @@ class FileExplorer(wx.Frame):
             folder_name = dialog.GetValue()
             new_folder = self.current_dir / folder_name
             AF.make_folder(new_folder)
-            self.current_dir = new_folder
-            self.load_directory()
+            # self.current_dir = new_folder
+            self.load_directory([folder_name])
 
     def start_search(self, *_):
         dialog = wx.TextEntryDialog(self, "Enter a SHA-256 Number:", "SHA-256")
@@ -539,6 +540,15 @@ class FileExplorer(wx.Frame):
         # if evt:
         #    evt.Skip()
 
+    def on_search_item_activated(self, event : wx.ListEvent):
+        """Handle double-click on item"""
+        row_selected_no = event.Index
+        folder_path = event.Text
+        file_name = self.search_results.GetItem(row_selected_no,1).Text
+        self.current_dir = self.conn / folder_path
+        self.load_directory([file_name])
+        self.file_list.SetFocus()
+
     def search_hide(self):
         self.search_panel.Show(False)
         self.file_list.SetFocus()
@@ -556,14 +566,17 @@ class FileExplorer(wx.Frame):
         self.splitter.Layout()
 
     def on_search_key_down(self, event):
+        self.search_results.DeleteAllItems()
         query = str(self.search_input.Value).strip()
         numbers_only_query = re.sub("[^0-9]", "", query)
         key_code = event.GetKeyCode()
         is_enter = key_code == wx.WXK_NUMPAD_ENTER or key_code == wx.WXK_RETURN
         is_enough = len(numbers_only_query) > 3
         if is_enter or is_enough:
-            items = AF.find(self.conn, query)
-            self.search_results.DeleteAllItems()
+            limit = 50
+            if is_enter:
+                limit = -1
+            items = AF.find(self.conn, query, limit=limit)
             for i, item in enumerate(items):
                 path = item["repo"] + "/" + item["path"]
                 index = self.search_results.InsertItem(i + 1, path)
@@ -577,6 +590,7 @@ class FileExplorer(wx.Frame):
                 self.search_results.SetItem(index, 6, item["sha256"] or "")
         else:
             event.Skip()  # Allow other key events to be processed
+
     def start_go_to(self, *_):
         dlg = CRDialog(self.open_cr_handler)
         dlg.ShowModal()
