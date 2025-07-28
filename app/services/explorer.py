@@ -4,7 +4,7 @@ import wx
 from artifactory import ArtifactoryPath
 import dohq_artifactory
 
-from app.gui.revision_compare import TableFrame
+from app.gui.revision_compare import ReVision_Report_Frame
 from app.gui.explorer import FileExplorer
 from app.services import af as AF
 from app.services.revision import get_drawings_for_cr
@@ -44,5 +44,9 @@ def compare_to_revision(path : ArtifactoryPath):
         for item in docs_in_path_dict
         if not item["name"] == "."
     ]
-    frame = TableFrame()
+    frame = ReVision_Report_Frame(
+        title = f"ReVision Report - {cr_no}",
+        revision_data = revision_docs,
+        af_data = docs_in_path
+    )
     frame.Show()

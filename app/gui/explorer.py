@@ -10,6 +10,7 @@ from app.core.config import CONFIG
 from app.core.telemetry import log
 from app.gui import explorer_elements as elements
 from app.models.af_search_results import AF_Repo, AF_Result
+from app.gui.go_to_cr import CRDialog
 from app.services import af as AF
 from app.services import explorer as EXPLORER
 from app.services import file_handler
@@ -93,7 +94,8 @@ class FileExplorer(wx.Frame):
 
         Arguments:
             file_to_highlight : List[str]
-                List of SHA #s of the files to highlight.
+                List of SHA #s of the files to highlight _OR_
+                file names
 
         """
         self.file_list.DeleteAllItems()
@@ -150,7 +152,7 @@ class FileExplorer(wx.Frame):
                     index, 5, item.modified_by or item.created_by or ""
                 )
                 self.file_list.SetItem(index, 6, item.sha256 or "")
-                if item.sha256 in files_to_highlight:
+                if item.sha256 in files_to_highlight or item.name in files_to_highlight:
                     indexes_to_highlight.append(index)
         except Exception as e:
             wx.MessageBox(
@@ -165,14 +167,17 @@ class FileExplorer(wx.Frame):
 
     def on_context_menu(self, event):
         menu = wx.Menu()
+        compare_to_revision_item = menu.Append(wx.ID_ANY, "Check against ReVision")
         copy_as_path_item = menu.Append(wx.ID_ANY, "Copy as Path")
-        copy_item = menu.Append(wx.ID_ANY, "Copy")
         copy_sha_item = menu.Append(wx.ID_ANY, "Copy SHA")
         copy_as_table_item = menu.Append(wx.ID_ANY, "Copy as Table")
+        copy_item = menu.Append(wx.ID_ANY, "Copy")
         download_item = menu.Append(wx.ID_ANY, "Download")
+        menu.AppendSeparator()
         delete_item = menu.Append(wx.ID_ANY, "Delete")
         compare_to_revision_item = menu.Append(wx.ID_ANY, "Check against ReVision")
 
+        
         # Event bindings
         self.Bind(wx.EVT_MENU, self.on_copy_as_path, copy_as_path_item)
         self.Bind(wx.EVT_MENU, self.on_copy_sha, copy_sha_item)
@@ -282,8 +287,9 @@ class FileExplorer(wx.Frame):
         # parent_dir = os.path.dirname(self.current_dir)
         parent_dir = self.current_dir.parent
         if parent_dir != self.current_dir:  # Not at root
+            current_folder_name = self.current_dir.name
             self.current_dir = parent_dir
-            self.load_directory()
+            self.load_directory([current_folder_name])
 
     def on_open(self, event):
         """Open selected file or directory (only works with single selection)"""
@@ -452,6 +458,10 @@ class FileExplorer(wx.Frame):
             self.on_up(None)
         elif control_down and shift_down and (key_code == ord("N")):
             self.start_make_folder()
+        elif control_down and (key_code == ord("F")):
+            self.start_search()
+        elif control_down and (key_code == ord("G")):
+            self.start_go_to()
         else:
             event.Skip()  # Allow other key events to be processed
 
@@ -501,7 +511,7 @@ class FileExplorer(wx.Frame):
         if dialog.ShowModal() == wx.ID_OK:
             folder_name = dialog.GetValue()
             new_folder = self.current_dir / folder_name
-            file_handler.make_folder(new_folder)
+            AF.make_folder(new_folder)
             self.current_dir = new_folder
             self.load_directory()
 
@@ -567,6 +577,31 @@ class FileExplorer(wx.Frame):
                 self.search_results.SetItem(index, 6, item["sha256"] or "")
         else:
             event.Skip()  # Allow other key events to be processed
+    def start_go_to(self, *_):
+        dlg = CRDialog(self.open_cr_handler)
+        dlg.ShowModal()
+    
+    def open_cr_handler(self, cr_number: str, selected_type: str):
+        folders = AF.find_folders(self.conn, selected_type, cr_number)
+        # If the folder's not found, make it?
+        if not folders:
+            dlg_result = wx.MessageBox(
+                f"Folder not found for {cr_number}.\nWould you like to create it?",
+                "Folder Not Found",
+                wx.YES_NO | wx.ICON_QUESTION
+            )
+            if dlg_result == wx.NO:
+                return
+            new_folder = self.conn / selected_type / cr_number
+            AF.make_folder(new_folder)
+            # self.create_folder(selected_type, cr_number)
+            # folders = AF.find_folders(self.conn, selected_type, cr_number)
+            folders = [new_folder]
+
+        folder = folders[0]
+        self.current_dir = folder
+        self.load_directory()
+
 
 
 class FileDropTarget(wx.FileDropTarget):
