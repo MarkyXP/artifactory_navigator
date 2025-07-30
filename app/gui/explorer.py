@@ -52,10 +52,11 @@ class FileExplorer(wx.Frame):
         )
         # search text box inside the collapsible pane
         self.search_panel.SetSizer(search_sizer)
-        self.search_panel.Show(False)  # Default to now show the search results
 
         # -------------------------- splitter set-up --------------------------
         self.splitter.SplitHorizontally(nav_panel, self.search_panel)
+        self.search_panel.Show(False)  # Default to show the navigation panel
+        self.splitter.SetSashGravity(1.0)  # Give all extra space to nav_panel
 
         # ------------------ Add the Splitter to the window -------------------
         main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -106,14 +107,9 @@ class FileExplorer(wx.Frame):
             )
             self.dir_text.SetValue(curr_foldername)
             path_in_repo = self.current_dir.path_in_repo[1:] or "."
-            items_dict = self.conn.aql(
-                *AF.get_folder_contents_aql(
-                    repo_name=self.current_dir.repo, foldername=path_in_repo
-                )
+            self.items = AF.find_folder_contents(
+                conn=self.conn, repo_name=self.current_dir.repo, folderpath=path_in_repo
             )
-            self.items = [
-                AF_Result(**item) for item in items_dict if not item["name"] == "."
-            ]
             self.selecting_offset = -1
         except Exception as e:
             repo_list = self.conn.get_repositories()

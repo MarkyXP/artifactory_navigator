@@ -8,6 +8,7 @@ from requests import Session
 from typing import List
 
 from app.core.config import CONFIG
+from app.models.af_search_results import AF_Result
 
 def get_af_conn(username : str, password : str) -> ArtifactoryPath:
     # cert = getcwd()+"\\Leica Biosystems Melbourne Root CA.cer"
@@ -46,8 +47,22 @@ def get_folder_contents_aql(repo_name : str, foldername : str):
         ".include",
         ["repo", "path", "name", "size", "sha256", "modified", "updated", "created_by", "modified_by", "type"]
     ]
-    #TODO: Implement sorting of the results
+    #NOTE: This previously sorted the results, however it has been removed as it
+    # is not supported by the Artifactory OSS, which I'm using to debug this.
     return aqlargs
+
+def find_folder_contents(conn : ArtifactoryPath, repo_name : str, folderpath : str) -> List[AF_Result]:
+    items_dict = conn.aql(
+        *get_folder_contents_aql(
+            repo_name=repo_name, foldername=folderpath
+        )
+    )
+    items = [
+        AF_Result(**item) for item in items_dict if not item["name"] == "."
+    ]
+    items.sort(key = lambda r : r.name)
+    items.sort(key= lambda r : r.type)
+    return items
 
 def find_folders(conn : ArtifactoryPath, repo : str, foldername_substring : str) -> List[ArtifactoryPath]:
     aql_ary = [
@@ -79,12 +94,13 @@ def _find_sha_aql(sha : str):
         ".include",
         ["repo", "path", "name"]
     ]
-    #TODO: Implement sorting of the results
     return aqlargs
 
 def _find_sha256(conn : ArtifactoryPath, sha : str) -> List[ArtifactoryPath]:
     aql_ary = _find_sha_aql(sha)
     results = conn.aql(*aql_ary)
+    results.sort(key=lambda r: r["path"])
+    results.sort(key=lambda r: r["name"])
     results_afpath = [
         conn / result["repo"] / result["path"] / result["name"]
         for result
@@ -116,7 +132,8 @@ def _find_all(conn : ArtifactoryPath, query : str, limit : int = -1) -> List[Art
             ".limit", limit
         ]
     docs = conn.aql(*aql_ary)
-    #TODO: Implement sorting of the results
+    docs.sort(key=lambda r: r["name"])
+    docs.sort(key=lambda r: r["path"])
     matches = deque()
     for doc in docs:
         checks = [word in doc['name'].lower() for word in query_words]
