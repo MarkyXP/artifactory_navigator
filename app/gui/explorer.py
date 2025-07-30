@@ -200,7 +200,7 @@ class FileExplorer(wx.Frame):
             download_item.Enabled(False)
         self.PopupMenu(menu)
 
-    def on_copy_as_path(self, event: wx.CommandEvent):
+    def on_copy_as_path(self, _: wx.CommandEvent):
         af_paths = self.get_selected_paths()
         shas = [str(self.current_dir / f.name) for f in af_paths]
         clipboard_str = ", ".join(shas)
@@ -208,7 +208,7 @@ class FileExplorer(wx.Frame):
             wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
             wx.TheClipboard.Close()
 
-    def on_copy_sha(self, event: wx.CommandEvent):
+    def on_copy_sha(self, _: wx.CommandEvent):
         af_paths = self.get_selected_paths()
         af_paths = [f for f in af_paths if f.type == "file"]
         shas = [f.sha256 for f in af_paths]
@@ -217,16 +217,16 @@ class FileExplorer(wx.Frame):
             wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
             wx.TheClipboard.Close()
 
-    def on_copy_as_table(self, event: wx.CommandEvent):
+    def on_copy_as_table(self, _: wx.CommandEvent):
         af_paths = self.get_selected_paths()
-        rows = ["Name", "Modified By", "SHA256"]
+        rows = ["Name\tModified By\tSHA256"]
         rows += [f"{item.name}\t{item.modified_by}\t{item.sha256}" for item in af_paths]
         clipboard_str = "\n".join(rows)
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
             wx.TheClipboard.Close()
 
-    def on_save_to_file(self, event):
+    def on_save_to_file(self, _):
         # Create the dialog
         dialog = wx.DirDialog(
             self,  # parent window
@@ -249,7 +249,7 @@ class FileExplorer(wx.Frame):
         # Destroy the dialog when done
         dialog.Destroy()
 
-    def on_begin_drag(self, event):
+    def on_begin_drag(self, _):
         """Handle drag initiation from the file list"""
         paths = self.get_selected_paths()
         if not paths:
