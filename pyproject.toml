@@ -1,7 +1,14 @@
 [project]
 name = "artifactory-navigator"
 version = "0.1.0"
-description = "A Windows native application to interface with Artifactory"
+description = "The Windows native Artifactory Nagivator"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "azure-cosmos>=4.9.0",
+    "cryptography>=45.0.5",
+    "dohq-artifactory>=1.0.1",
+    "python-dotenv>=1.1.1",
+    "requests>=2.32.4",
+    "wxpython>=4.2.3",
+]

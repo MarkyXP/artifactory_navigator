@@ -3,16 +3,16 @@ import shutil
 import wx
 
 from app.core.config import CONFIG
-from app.services.explorer import Run
-from app.services.login import GetAFConnection
+from app.services import explorer
+from app.services import login
 
 app = wx.App(False)
-conn = GetAFConnection(app)
+conn = login.GetAFConnection(app)
 # User cancelled logging in
 if not conn:
     exit()
 try:
-    Run(app, conn)
+    explorer.Run(app, conn)
 finally:
     app.ExitMainLoop()
     shutil.rmtree(CONFIG.STORE_TEMPFILES_PATH.as_posix(), ignore_errors=True)

@@ -8,6 +8,7 @@ from requests import Session
 from typing import List
 
 from app.core.config import CONFIG
+from app.models.af_search_results import AF_Result
 
 def get_af_conn(username : str, password : str) -> ArtifactoryPath:
     # cert = getcwd()+"\\Leica Biosystems Melbourne Root CA.cer"
@@ -44,11 +45,24 @@ def get_folder_contents_aql(repo_name : str, foldername : str):
     aqlargs = [
         "items.find",args,
         ".include",
-        ["repo", "path", "name", "size", "sha256", "modified", "updated", "created_by", "modified_by", "type"],
-        ".sort",
-        {"$asc": ["name"]}
+        ["repo", "path", "name", "size", "sha256", "modified", "updated", "created_by", "modified_by", "type"]
     ]
+    #NOTE: This previously sorted the results, however it has been removed as it
+    # is not supported by the Artifactory OSS, which I'm using to debug this.
     return aqlargs
+
+def find_folder_contents(conn : ArtifactoryPath, repo_name : str, folderpath : str) -> List[AF_Result]:
+    items_dict = conn.aql(
+        *get_folder_contents_aql(
+            repo_name=repo_name, foldername=folderpath
+        )
+    )
+    items = [
+        AF_Result(**item) for item in items_dict if not item["name"] == "."
+    ]
+    items.sort(key = lambda r : r.name)
+    items.sort(key= lambda r : r.type)
+    return items
 
 def find_folders(conn : ArtifactoryPath, repo : str, foldername_substring : str) -> List[ArtifactoryPath]:
     aql_ary = [
@@ -78,15 +92,15 @@ def _find_sha_aql(sha : str):
         "items.find",
         {"sha256" : sha},
         ".include",
-        ["repo", "path", "name"],
-        ".sort",
-        {"$asc": ["name"]}
+        ["repo", "path", "name"]
     ]
     return aqlargs
 
 def _find_sha256(conn : ArtifactoryPath, sha : str) -> List[ArtifactoryPath]:
     aql_ary = _find_sha_aql(sha)
     results = conn.aql(*aql_ary)
+    results.sort(key=lambda r: r["path"])
+    results.sort(key=lambda r: r["name"])
     results_afpath = [
         conn / result["repo"] / result["path"] / result["name"]
         for result
@@ -94,7 +108,7 @@ def _find_sha256(conn : ArtifactoryPath, sha : str) -> List[ArtifactoryPath]:
     ]
     return results_afpath
 
-def _find_all(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
+def _find_all(conn : ArtifactoryPath, query : str, limit : int = -1) -> List[ArtifactoryPath]:
     """
     Called by 'find', this searches for keywords across AF.
     Note: To support case insensitive search I just search for everything*,
@@ -111,20 +125,24 @@ def _find_all(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
         {"$and" : [ {"name" : {"$match" : f"*{number}*"}} for number in query_numbers ] }
         ,
         ".include",
-        ["repo", "path", "name"],
-        ".sort",
-        {"$asc": ["name"]}
+        ["repo", "path", "name", "size", "modified", "updated", "modified_by", "created_by", "sha256"]
     ]
+    if limit > 0:
+        aql_ary += [
+            ".limit", limit
+        ]
     docs = conn.aql(*aql_ary)
+    docs.sort(key=lambda r: r["name"])
+    docs.sort(key=lambda r: r["path"])
     matches = deque()
     for doc in docs:
         checks = [word in doc['name'].lower() for word in query_words]
         if all( checks ):
-            doc_af_path = conn / doc["repo"] / doc["path"] / doc["name"]
-            matches.append( doc_af_path )
+            # doc_af_path = conn / doc["repo"] / doc["path"] / doc["name"]
+            matches.append( doc )
     return list(matches)
 
-def find(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
+def find(conn : ArtifactoryPath, query : str, limit = -1) -> List[ArtifactoryPath]:
     """
     Searches for the query
      - If the query is 64characters long treats it as a sha256 checksum search
@@ -133,7 +151,7 @@ def find(conn : ArtifactoryPath, query : str) -> List[ArtifactoryPath]:
     query = query.strip().lower()
     if len(query) == 64:
         return _find_sha256(conn, query)
-    return _find_all(conn, query)
+    return _find_all(conn, query, limit=limit)
 
 def make_folder(folderpath : ArtifactoryPath):
     folderpath.mkdir()

@@ -65,6 +65,15 @@ In the interest of full disclosure, the following is a sample screenshot of an a
 
 <div class="page"/>
 
+## Icons
+Siemens Industrial Experience - https://icon-sets.iconify.design/ix/
+Microsoft Codicons - https://icon-sets.iconify.design/codicon/
+Material Design Icons - https://icon-sets.iconify.design/mdi/
+Gitlab Icons - https://icon-sets.iconify.design/pajamas/
+https://icon-sets.iconify.design/streamline-pixel/
+
+<div class="page"/>
+
 ## Building application
 Note: I have two secrets that I don't want to commit anywhere public:
  1. The Key to access the users credentials
