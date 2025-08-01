@@ -104,3 +104,30 @@ fn launch_app_with_updater_flag(exe_path: &String, flag : &String) -> io::Result
         .spawn()?;
     Ok(())
 }
+
+fn create_shortcut(appdata:path : &String) -> io::Result<()> {
+    let target = r"%LocalAppData%\programname\program.exe";
+    let shortcut_dir = r"%AppData%\Microsoft\Windows\Start Menu\Programs";
+    let shortcut_name = "MyProgramShortcut.lnk";
+
+    // PowerShell command to create shortcut using WScript.Shell COM object
+    let ps_script = format!(
+        r#"
+        $WshShell = New-Object -ComObject WScript.Shell;
+        $Shortcut = $WshShell.CreateShortcut('{shortcut_dir}\\{shortcut_name}');
+        $Shortcut.TargetPath = '{target}';
+        $Shortcut.IconLocation = '{target}';
+        $Shortcut.Save();
+        "#,
+        shortcut_dir = shortcut_dir,
+        shortcut_name = shortcut_name,
+        target = target
+    );
+
+    // Run PowerShell to create the shortcut
+    Command::new("powershell")
+        .args(&["-NoProfile", "-Command", &ps_script])
+        .spawn()?;
+
+    Ok(())
+}
