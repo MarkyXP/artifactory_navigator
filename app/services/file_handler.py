@@ -7,7 +7,7 @@ from typing import List
 
 from artifactory import ArtifactoryPath
 import math
-import pymupdf
+# import pymupdf
 
 from app.core.config import CONFIG
 from app.services.revision import get_doc_no
@@ -97,15 +97,15 @@ def upload_formatted_files(files : List[pathlib.Path], dest_folder : Artifactory
     return errors
 
 def deploy_file_w_params(dest_folder : ArtifactoryPath, src_filepath : pathlib.Path):
-    params = get_file_parameters(src_filepath)
+    # params = get_file_parameters(src_filepath)
     # Consider making this more opinionated?
     # src_doc_renamed_double_underscore = re.sub(r"[^a-zA-Z0-9]", "_", src_filepath.stem)
     # src_doc_renamed = re.sub(r"\_+", "_", src_doc_renamed_double_underscore)
     # src_str = src_str.rename(src_doc_renamed)
     src_str = src_filepath.as_posix()
     dest_folder.deploy_file(
-        src_str,
-        parameters=params
+        file_name = src_str,
+        # parameters=params
     )
 
 def _is_docusigned(path : pathlib.Path) -> bool:

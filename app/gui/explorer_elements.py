@@ -1,7 +1,9 @@
+import os
 from typing import Tuple
 
 import wx
 
+from app.core.config import CONFIG
 from app.models import explorer as models
 
 
@@ -17,7 +19,8 @@ def make_path_bar(parent: wx.Window, vbox: wx.BoxSizer):
 
 def _make_nav_btn(parent: wx.Window, icon_name: str, tooltip: str):
     button_size = wx.Size(23, 23)
-    icon_bmp = wx.Bitmap(f"Assets/Icons/{icon_name}_Dark.png", wx.BITMAP_TYPE_ANY)
+    icon_location = os.path.join(CONFIG.ICON_LOCATION, f"{icon_name}_Dark.png")
+    icon_bmp = wx.Bitmap(icon_location, wx.BITMAP_TYPE_ANY)
     button = wx.Button(parent, size=button_size)
     button.SetBitmapLabel(icon_bmp)
     button.SetToolTip(tooltip)

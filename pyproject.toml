@@ -1,6 +1,6 @@
 [project]
 name = "artifactory-navigator"
-version = "0.1.0"
+version = "0.1.20250814"
 description = "The Windows native Artifactory Nagivator"
 readme = "README.md"
 requires-python = ">=3.11"

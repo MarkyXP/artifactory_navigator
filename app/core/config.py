@@ -37,11 +37,15 @@ for config_location in possible_config_locations:
 if not config_found:
     raise "Error - Could not find config.json file"
 
+ICON_FOLDER_PATH = resource_path("Assets/Icons")
+
 CONFIG = _Config(
     **config_dict,
+    APP_ICON_PATH = os.path.join(ICON_FOLDER_PATH, config_dict["APP_ICON_NAME"]),
     APP_SECRET = os.getenv("APP_SECRET"),
     AZURE_COSMOS_KEY = os.getenv("AZURE_COSMOS_KEY"),
-    ICON_LOCATION= resource_path("Assets/LBS_AF_Logo.ico")
+    ICON_LOCATION = ICON_FOLDER_PATH
+    
 )
 
 # Make some nice pathlib paths

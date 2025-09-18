@@ -4,6 +4,8 @@ from pathlib import Path
 @dataclass
 class Config:
     APP_NAME : str
+    APP_ICON_NAME : str
+    APP_ICON_PATH : str
     APP_SECRET : str
     AF_URL : str
     AF_PRETTY_URL : str

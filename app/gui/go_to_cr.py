@@ -1,3 +1,4 @@
+import os
 import wx
 
 from app.core.config import CONFIG
@@ -6,7 +7,7 @@ from app.models.go_to_cr import RepoType
 class CRDialog(wx.Dialog):
     def __init__(self, open_cr_handler):
         super().__init__(None, title=CONFIG.APP_NAME, size=(300, 200))
-        icon = wx.Icon(CONFIG.ICON_LOCATION, wx.BITMAP_TYPE_ICO)
+        icon = wx.Icon(CONFIG.APP_ICON_PATH, wx.BITMAP_TYPE_ICO)
         self.SetIcon(icon)
 
         panel = wx.Panel(self)
