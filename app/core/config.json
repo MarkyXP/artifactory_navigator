@@ -6,5 +6,6 @@
     "HTTP_CERT_FNAME" : "Leica Biosystems Melbourne Root CA.cer",
     "AZURE_COSMOS_ENDPOINT" : "https://mark.documents.azure.com:443/",
     "AZURE_COSMOS_DATABASE_ID" : "Logs",
-    "AZURE_COSMOS_CONTAINER_ID" : "All"
+    "AZURE_COSMOS_CONTAINER_ID" : "All",
+    "AZURE_DST_SETTINGS" : "https://aumel-artifactory.leicabio.com/artifactory/ddc-ops-prod-mel/Azure/DSTSettings.json"
 }

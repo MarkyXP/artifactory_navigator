@@ -1,0 +1,86 @@
+name: LBS Artifactory Navigator
+
+on:
+  push:
+    tags:
+      - "v*.*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      # --------------------------------------------------------------
+      # 1️⃣ Checkout the Repository
+      # --------------------------------------------------------------
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      # --------------------------------------------------------------
+      # 2️⃣ Install UV (Python)
+      # --------------------------------------------------------------
+      - name: Set up UV
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      # --------------------------------------------------------------
+      # 3️⃣ Install the Depentencies
+      # --------------------------------------------------------------
+      - name: Install Dependencies
+        run: |
+          uv sync
+          uv pip install pyinstaller
+
+      # --------------------------------------------------------------
+      # 4️⃣ Generate the config file that contains the secrets
+      # --------------------------------------------------------------
+      - name: Generate .env
+        run: |
+          echo "APP_SECRET = `"${{ secrets.APP_SECRET }}`"" > .env
+          echo "AZURE_COSMOS_KEY = `"${{ secrets.AZURE_COSMOS_KEY }}`"" >> .env
+          echo "AZURE_DST_KEY = `"${{ secrets.AZURE_DST_KEY }}`"" >> .env
+          echo "VERSION = `"${{ github.ref_name }}`"" >> .env
+
+      # --------------------------------------------------------------
+      # 5️⃣ Build the Executable
+      # --------------------------------------------------------------
+      - name: Build Executable
+        run: |
+          uv run pyinstaller pyinstaller.spec
+          dir dist
+
+      # --------------------------------------------------------------
+      # 6️⃣ Upload the Executable Artifact
+      # --------------------------------------------------------------
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-exe
+          path: dist/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      # --------------------------------------------------------------
+      # 1️⃣ Download the Build Executable Artifact
+      # --------------------------------------------------------------
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Windows-exe
+          path: dist
+
+      # --------------------------------------------------------------
+      # 2️⃣ Create a Release
+      # --------------------------------------------------------------
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          # tag_name: ${{ github.ref_name }}
+          # name: Release ${{ github.ref_name }}
+        # env:
+        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -12,6 +12,7 @@ class Config:
     AZURE_COSMOS_KEY : str
     AZURE_COSMOS_DATABASE_ID : str
     AZURE_COSMOS_CONTAINER_ID : str
+    AZURE_DST_SETTINGS : str
     STORE_LOCATION: str
     STORE_LOCATION_PATH : Path | None = None
     STORE_TEMPFILES_PATH : Path | None = None
