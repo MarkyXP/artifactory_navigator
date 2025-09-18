@@ -9,6 +9,7 @@ import wx
 from app.core.config import CONFIG
 from app.services import explorer
 from app.services import login
+from app.services import shipping_tool
 
 app = wx.App(False)
 conn = login.GetAFConnection(app)
@@ -17,6 +18,10 @@ if not conn:
     import sys
     sys.exit()
 try:
+    # Start the background job to get DST config
+    shipping_tool.AF_SESSION = conn
+    shipping_tool.get_azure_details.start()
+    # Run the main app
     explorer.Run(app, conn)
 finally:
     app.ExitMainLoop()

@@ -7,6 +7,7 @@ class Config:
     APP_ICON_NAME : str
     APP_ICON_PATH : str
     APP_SECRET : str
+    VERSION : str
     AF_URL : str
     AF_PRETTY_URL : str
     HTTP_CERT_FNAME : str

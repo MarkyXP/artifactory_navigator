@@ -44,8 +44,8 @@ CONFIG = _Config(
     APP_ICON_PATH = os.path.join(ICON_FOLDER_PATH, config_dict["APP_ICON_NAME"]),
     APP_SECRET = os.getenv("APP_SECRET"),
     AZURE_COSMOS_KEY = os.getenv("AZURE_COSMOS_KEY"),
+    VERSION = os.getenv("VERSION", "DEBUG"),
     ICON_LOCATION = ICON_FOLDER_PATH
-    
 )
 
 # Make some nice pathlib paths
