@@ -1,5 +1,6 @@
 import os
 import re
+from collections import deque
 from pathlib import Path
 from typing import List
 
@@ -19,12 +20,13 @@ from app.services import file_handler
 class FileExplorer(wx.Frame):
     def __init__(self, af_conn: ArtifactoryPath):
         super().__init__(None, title=CONFIG.APP_NAME, size=(800, 600))
-        icon = wx.Icon(CONFIG.ICON_LOCATION, wx.BITMAP_TYPE_ICO)
+        icon = wx.Icon(CONFIG.APP_ICON_PATH, wx.BITMAP_TYPE_ICO)
         self.SetIcon(icon)
 
         self.conn = af_conn
         self.current_dir = AF.open(self.conn, CONFIG.AF_URL)
-        self.clipboard = []
+        self.path_backward_stack = deque()
+        self.path_forward_stack = deque()
 
         self.create_ui()
         self.file_list.SetDropTarget(FileDropTarget(self))
@@ -66,6 +68,8 @@ class FileExplorer(wx.Frame):
 
         # -------------------------- Event Bindings ---------------------------
         # Bindings - Navbar
+        self.buttons.BACK.Bind(wx.EVT_BUTTON, self.on_back)
+        self.buttons.FORWARD.Bind(wx.EVT_BUTTON, self.on_forward)
         self.buttons.UP.Bind(wx.EVT_BUTTON, self.on_up)
         self.buttons.NEW_FOLDER.Bind(wx.EVT_BUTTON, self.start_make_folder)
         self.buttons.SEARCH.Bind(wx.EVT_BUTTON, self.on_search_toggle)
@@ -74,7 +78,10 @@ class FileExplorer(wx.Frame):
         self.buttons.PASTE.Bind(wx.EVT_BUTTON, self.on_paste)
         self.buttons.OPEN.Bind(wx.EVT_BUTTON, self.on_open)
         self.buttons.DELETE.Bind(wx.EVT_BUTTON, self.on_delete)
+        self.buttons.REVISION.Bind(wx.EVT_BUTTON, self.on_compare_to_revision_item)
         # Bindings - Main File Explorer
+        self.file_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_selected)
+        self.file_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.on_selected)
         self.file_list.Bind(wx.EVT_LIST_BEGIN_DRAG, self.on_begin_drag)
         self.file_list.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
         self.file_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_item_activated)
@@ -85,13 +92,18 @@ class FileExplorer(wx.Frame):
         self.search_input.Bind(wx.EVT_KEY_UP, self.on_search_key_down)
         self.search_results.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_search_item_activated)
         # Global keybindings
-        accel_tbl = wx.AcceleratorTable([(wx.ACCEL_CTRL, ord("F"), wx.ID_FIND)])
+        accel_tbl = wx.AcceleratorTable([
+            (wx.ACCEL_CTRL, ord("F"), wx.ID_FIND),
+            (wx.ACCEL_CTRL, ord("G"), wx.ID_JUMP_TO)
+        ])
         self.SetAcceleratorTable(accel_tbl)
         self.Bind(wx.EVT_MENU, self.on_search_toggle, id=wx.ID_FIND)
+        self.Bind(wx.EVT_MENU, self.start_go_to, id=wx.ID_JUMP_TO)
+
         # Set the window to the foreground
         panel.SetFocus()
 
-    def load_directory(self, files_to_highlight: List[str] = ()):
+    def load_directory(self, files_to_highlight: List[str] = (), add_to_back_queue : bool = True):
         """Load the contents of the current directory into the list
 
         Arguments:
@@ -160,6 +172,11 @@ class FileExplorer(wx.Frame):
             self.file_list.Select(i)
             self.file_list.Focus(i)
             self.file_list.EnsureVisible(i)
+        # Update the navbar
+        self.update_navbar()
+        # Add the back queue
+        if add_to_back_queue:
+            self.path_backward_stack.append(self.current_dir)
         pass
 
     def on_context_menu(self, event):
@@ -172,19 +189,17 @@ class FileExplorer(wx.Frame):
         download_item = menu.Append(wx.ID_ANY, "Download")
         menu.AppendSeparator()
         delete_item = menu.Append(wx.ID_ANY, "Delete")
-        compare_to_revision_item = menu.Append(wx.ID_ANY, "Check against ReVision")
 
-        
         # Event bindings
+        self.Bind(
+            wx.EVT_MENU, self.on_compare_to_revision_item, compare_to_revision_item
+        )
         self.Bind(wx.EVT_MENU, self.on_copy_as_path, copy_as_path_item)
         self.Bind(wx.EVT_MENU, self.on_copy_sha, copy_sha_item)
         self.Bind(wx.EVT_MENU, self.on_copy, copy_item)
         self.Bind(wx.EVT_MENU, self.on_save_to_file, download_item)
         self.Bind(wx.EVT_MENU, self.on_copy_as_table, copy_as_table_item)
         self.Bind(wx.EVT_MENU, self.on_delete, delete_item)
-        self.Bind(
-            wx.EVT_MENU, self.on_compare_to_revision_item, compare_to_revision_item
-        )
 
         af_paths = self.get_selected_paths()
         af_paths = [f for f in af_paths if not f.name == ".."]
@@ -288,6 +303,31 @@ class FileExplorer(wx.Frame):
             self.current_dir = parent_dir
             self.load_directory([current_folder_name])
 
+    def on_back(self, _):
+        """Navigate back a directory"""
+        while self.path_backward_stack:
+            path = self.path_backward_stack.pop()
+            if path != self.current_dir:
+                # Go back a directory
+                self.path_forward_stack.append(self.current_dir)
+                self.current_dir = path
+                return self.load_directory()
+            # The back path is this path, skip it
+            pass
+        # We never found a path to go to, so don't do anything.
+    
+    def on_forward(self, _):
+        """Navigate forward a directory"""
+        while self.path_forward_stack:
+            path = self.path_forward_stack.pop()
+            if path != self.current_dir:
+                # Go Forward a directory
+                self.current_dir = path
+                return self.load_directory()
+            # The back path is this path, skip it
+            pass
+        # We never found a path to go to, so don't do anything.
+
     def on_open(self, event):
         """Open selected file or directory (only works with single selection)"""
         paths = self.get_selected_paths()
@@ -336,7 +376,6 @@ class FileExplorer(wx.Frame):
         local_paths = [
             self._download_file(self.current_dir / path.name) for path in af_paths
         ]
-        self.clipboard = local_paths
         local_path_strings = ", ".join([f"'{f.as_posix()}'" for f in local_paths])
         file_names = ", ".join([f.name for f in local_paths])
         no_files_copied = len(local_paths)
@@ -411,7 +450,7 @@ class FileExplorer(wx.Frame):
                 log(f"Deleted files - {len(paths)}")
 
     def on_compare_to_revision_item(self, event):
-        first_item = self.file_list.GetItem(1, 0).GetText()
+        # first_item = self.file_list.GetItem(1, 0).GetText()
         EXPLORER.compare_to_revision(self.current_dir)
 
     def on_start_rename(self, event):
@@ -452,13 +491,9 @@ class FileExplorer(wx.Frame):
         elif control_down and (key_code == ord("V")):
             self.on_paste(None)
         elif alt_down and (key_code == wx.WXK_LEFT):
-            self.on_up(None)
+            self.on_back(None)
         elif control_down and shift_down and (key_code == ord("N")):
             self.start_make_folder()
-        elif control_down and (key_code == ord("F")):
-            self.start_search()
-        elif control_down and (key_code == ord("G")):
-            self.start_go_to()
         else:
             event.Skip()  # Allow other key events to be processed
 
@@ -504,6 +539,8 @@ class FileExplorer(wx.Frame):
         return tmp_file_path
 
     def start_make_folder(self, *_):
+        if not self.buttons.NEW_FOLDER.Enabled:
+            return
         dialog = wx.TextEntryDialog(self, "Enter a folder name:", "Folder Input")
         if dialog.ShowModal() == wx.ID_OK:
             folder_name = dialog.GetValue()
@@ -612,6 +649,41 @@ class FileExplorer(wx.Frame):
         self.current_dir = folder
         self.load_directory()
 
+    def on_selected(self, event):
+        self.update_navbar()
+
+    def update_navbar(self):
+        # Default to enabling the buttons
+        for btn in self.buttons:
+            btn.Enable()
+        # 100% Disable DocuSign
+        self.buttons.DOCUSIGN.Disable()
+        # See what's highlighted
+        selected_items = self.get_selected_paths()
+        selected_items = [f for f in selected_items if not f.name == ".."]
+        # Disable the back button if there are no other folders to go back to
+        if not any([not self.current_dir == path for path in self.path_backward_stack]):
+                self.buttons.BACK.Disable()
+        # Disable the forward button
+        if not self.path_forward_stack:
+            self.buttons.FORWARD.Disable()
+        # Disable the up button
+        if self.current_dir.parent == self.current_dir:
+            self.buttons.UP.Disable()
+        # Disable modifying if we don't have write permissions
+        if not AF.check_has_write_permissions(self.current_dir):
+            self.buttons.NEW_FOLDER.Disable()
+            self.buttons.PASTE.Disable()
+            self.buttons.UPLOAD.Disable()
+            self.buttons.DELETE.Disable()
+        # Disable open/download if nothing is highlighted
+        if not selected_items:
+            self.buttons.COPY.Disable()
+            self.buttons.DOWNLOAD.Disable()
+            self.buttons.OPEN.Disable()
+            self.buttons.DELETE.Disable()
+        if not re.findall(r"(\d{5})", self.current_dir.path_in_repo):
+            self.buttons.REVISION.Disable()
 
 
 class FileDropTarget(wx.FileDropTarget):

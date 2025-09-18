@@ -1,3 +1,7 @@
+# Run the updater!
+# from app.core.run_updater import run_updater
+# run_updater()
+
 import shutil
 
 import wx
@@ -10,7 +14,8 @@ app = wx.App(False)
 conn = login.GetAFConnection(app)
 # User cancelled logging in
 if not conn:
-    exit()
+    import sys
+    sys.exit()
 try:
     explorer.Run(app, conn)
 finally:

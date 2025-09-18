@@ -1,14 +1,16 @@
 # https://leap.jfrog.com/rs/256-FNZ-187/images/AQL_Ref_Cards_Downloadable.pdf
 
-from collections import deque
 import re
+from collections import deque
+from typing import List
 
 from artifactory import ArtifactoryPath
 from requests import Session
-from typing import List
 
 from app.core.config import CONFIG
 from app.models.af_search_results import AF_Result
+
+repos_with_write_permissions = []
 
 def get_af_conn(username : str, password : str) -> ArtifactoryPath:
     # cert = getcwd()+"\\Leica Biosystems Melbourne Root CA.cer"
@@ -51,6 +53,28 @@ def get_folder_contents_aql(repo_name : str, foldername : str):
     # is not supported by the Artifactory OSS, which I'm using to debug this.
     return aqlargs
 
+def check_has_write_permissions(path : ArtifactoryPath) -> bool:
+    """
+    Checks for a path whether the user has permission to write to it.
+    Note that this is only a simple check, and does not implement the full
+    regex / pattern that I should look for.
+    """
+    global repos_with_write_permissions
+    repo_name = (list(path.parts) + [''])[1]
+    if not repos_with_write_permissions:
+        resp = path.session.get(
+            url = "https://aumel-artifactory.leicabio.com/ui/api/v1/ui/repodata?deploy=true"
+        )
+        resp_dict = resp.json()
+        if "repoTypesList" in resp_dict:
+            repos_with_write_permissions = [
+                repo["repoKey"]
+                for repo in resp_dict["repoTypesList"]
+                if repo["repoType"] == "Generic"
+            ]
+    
+    return repo_name in repos_with_write_permissions
+
 def find_folder_contents(conn : ArtifactoryPath, repo_name : str, folderpath : str) -> List[AF_Result]:
     items_dict = conn.aql(
         *get_folder_contents_aql(
@@ -92,7 +116,7 @@ def _find_sha_aql(sha : str):
         "items.find",
         {"sha256" : sha},
         ".include",
-        ["repo", "path", "name"]
+        ["repo", "path", "name", "size", "modified", "updated", "modified_by", "created_by", "sha256"]
     ]
     return aqlargs
 
@@ -101,6 +125,7 @@ def _find_sha256(conn : ArtifactoryPath, sha : str) -> List[ArtifactoryPath]:
     results = conn.aql(*aql_ary)
     results.sort(key=lambda r: r["path"])
     results.sort(key=lambda r: r["name"])
+    return results
     results_afpath = [
         conn / result["repo"] / result["path"] / result["name"]
         for result

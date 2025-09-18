@@ -115,8 +115,21 @@ Remember: You also need to have the `config.json` and `Leica Biosystems Melbourn
 
 For those that don't want to use `Auto Py To Exe`, you can use pyinstaller with the command:
 ```
-pyinstaller --noconfirm --onefile --windowed --icon "C:\Python\artifactory_navigator\Assets\LBS_AF_Logo.ico" --name "LBS Artifactory Navigator" --add-data "C:\Python\artifactory_navigator\Assets\LBS_AF_Logo.ico;Assets" --add-data "C:\Python\artifactory_navigator\.env;."  "C:\Python\artifactory_navigator\main.py"
+pyinstaller --noconfirm --onefile --windowed --icon "C:\Python\artifactory_navigator\Assets\Icons\LBS_AF_Logo.ico" --name "LBS Artifactory Navigator" --add-data "Assets;Assets" --add-data ".env;."  "C:\Python\artifactory_navigator\main.py"
 ```
+
+### Building using Nuitka
+I'm toying around with using Nuitka to build the exe, it's supposed to compile down to raw C, rather than just zipping everything up.
+```bash
+nuitka --standalone --onefile --windows-icon-from-ico=Assets/LBS_AF_Logo.ico --output-dir=output_nuitka main.py
+```
+So, in summary:
+- It made the file 20% smaller, so from 22MB to 18MB
+- added ~20minutes to the compilation time
+- I couldn't usethe pymupdf library anymore, and
+- it was flagged as a virus.
+ 
+I'll stick to pyinstaller
 
 <div class="page"/>
 
