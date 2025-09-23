@@ -19,7 +19,8 @@ from app.services import file_handler
 
 class FileExplorer(wx.Frame):
     def __init__(self, af_conn: ArtifactoryPath):
-        super().__init__(None, title=CONFIG.APP_NAME, size=(800, 600))
+        title = f"{CONFIG.APP_NAME} | {CONFIG.VERSION}"
+        super().__init__(None, title=title, size=(800, 600))
         icon = wx.Icon(CONFIG.APP_ICON_PATH, wx.BITMAP_TYPE_ICO)
         self.SetIcon(icon)
 
@@ -532,8 +533,12 @@ class FileExplorer(wx.Frame):
             output_path.mkdir(parents=True, exist_ok=True)
         fname = file_conn.name
         tmp_file_path = output_path / fname
-        with tmp_file_path.open(mode="wb") as f:
-            file_conn.writeto(f, chunk_size=256)
+        try:
+            with tmp_file_path.open(mode="wb") as f:
+                file_conn.writeto(f, chunk_size=256)
+        except PermissionError:
+            # File has already been downloaded and is already open
+            pass
         if open:
             os.startfile(tmp_file_path.as_posix())
         return tmp_file_path
@@ -628,6 +633,10 @@ class FileExplorer(wx.Frame):
         dlg = CRDialog(self.open_cr_handler)
         dlg.ShowModal()
     
+    def on_shipping_tool(self, *_):
+        items = self.get_selected_paths()
+        EXPLORER.send_to_shipping_tool(items)
+    
     def open_cr_handler(self, cr_number: str, selected_type: str):
         folders = AF.find_folders(self.conn, selected_type, cr_number)
         # If the folder's not found, make it?
@@ -660,7 +669,7 @@ class FileExplorer(wx.Frame):
         self.buttons.DOCUSIGN.Disable()
         # See what's highlighted
         selected_items = self.get_selected_paths()
-        selected_items = [f for f in selected_items if not f.name == ".."]
+        selected_items = [f for f in selected_items if hasattr(f, "name") and not f.name == ".."]
         # Disable the back button if there are no other folders to go back to
         if not any([not self.current_dir == path for path in self.path_backward_stack]):
                 self.buttons.BACK.Disable()
