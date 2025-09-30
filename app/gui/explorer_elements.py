@@ -68,7 +68,7 @@ def make_main_explorer(parent: wx.Window, sizer: wx.BoxSizer) -> wx.ListCtrl:
 
 def make_search(
     parent: wx.Window, sizer: wx.BoxSizer
-) -> Tuple[wx.CollapsiblePane, wx.TextCtrl, wx.ListCtrl]:
+) -> Tuple[wx.TextCtrl, wx.ListCtrl]:
     # Search input
     hbox = wx.BoxSizer(wx.HORIZONTAL)
     search_label = wx.StaticText(parent, label="Search:")

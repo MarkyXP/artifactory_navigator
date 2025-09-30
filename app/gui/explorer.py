@@ -597,6 +597,7 @@ class FileExplorer(wx.Frame):
     def search_show(self):
         self.search_panel.Show(True)
         self.search_input.SetFocus()
+        self.search_input.SetSelection(-1, -1)  # Highlight all text
         sash_pos = self.file_list.GetSize().GetHeight() - 200
         self.splitter.SetMinimumPaneSize(150)  # so the sash can’t disappear
         splitter_min = self.splitter.MinimumPaneSize
