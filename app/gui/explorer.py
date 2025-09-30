@@ -12,6 +12,7 @@ from app.core.telemetry import log
 from app.gui import explorer_elements as elements
 from app.models.af_search_results import AF_Repo, AF_Result
 from app.gui.go_to_cr import CRDialog
+from app.gui.shipping_tool import ShippingToolDialog
 from app.services import af as AF
 from app.services import explorer as EXPLORER
 from app.services import file_handler
@@ -80,6 +81,7 @@ class FileExplorer(wx.Frame):
         self.buttons.OPEN.Bind(wx.EVT_BUTTON, self.on_open)
         self.buttons.DELETE.Bind(wx.EVT_BUTTON, self.on_delete)
         self.buttons.REVISION.Bind(wx.EVT_BUTTON, self.on_compare_to_revision_item)
+        self.buttons.SHIPPING_TOOL.Bind(wx.EVT_BUTTON, self.on_shipping_tool)
         # Bindings - Main File Explorer
         self.file_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_selected)
         self.file_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.on_selected)
@@ -634,10 +636,6 @@ class FileExplorer(wx.Frame):
         dlg = CRDialog(self.open_cr_handler)
         dlg.ShowModal()
     
-    def on_shipping_tool(self, *_):
-        items = self.get_selected_paths()
-        EXPLORER.send_to_shipping_tool(items)
-    
     def open_cr_handler(self, cr_number: str, selected_type: str):
         folders = AF.find_folders(self.conn, selected_type, cr_number)
         # If the folder's not found, make it?
@@ -658,6 +656,11 @@ class FileExplorer(wx.Frame):
         folder = folders[0]
         self.current_dir = folder
         self.load_directory()
+    
+    def on_shipping_tool(self, *_):
+        items = self.get_selected_paths()
+        dlg = ShippingToolDialog(items)
+        dlg.ShowModal()
 
     def on_selected(self, event):
         self.update_navbar()

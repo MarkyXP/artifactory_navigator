@@ -1,9 +1,13 @@
+from typing import List
+
 import wx
 
 from app.core.config import CONFIG
+from app.models.af_search_results import AF_Result
+from app.services import explorer as EXPLORER
 
 class ShippingToolDialog(wx.Dialog):
-    def __init__(self, open_cr_handler):
+    def __init__(self, items_to_ship : List[AF_Result]):
         title = f"{CONFIG.APP_NAME} | Document Shipping TOol"
         super().__init__(None, title=title, size=(300, 200))
         icon = wx.Icon(CONFIG.APP_ICON_PATH, wx.BITMAP_TYPE_ICO)
@@ -43,8 +47,7 @@ class ShippingToolDialog(wx.Dialog):
         vbox.Add(btn_sizer, 0, wx.ALIGN_CENTER)
 
         # Bind events
-        self.generate_email_btn.Bind(wx.EVT_BUTTON, self.on_go)
-        self.name_input.Bind(wx.EVT_TEXT_ENTER, self.on_go)
+        self.generate_email_btn.Bind(wx.EVT_BUTTON, self.on_send_email)
         self.Bind(wx.EVT_CLOSE, self.on_close)
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key_down)
 
@@ -53,26 +56,21 @@ class ShippingToolDialog(wx.Dialog):
         self.name_input.SetFocus()
 
         # Store handler
-        self.open_cr_handler = open_cr_handler
+        self.items_to_ship = items_to_ship
 
-    def on_go(self, event):
-        cr_number = self.name_input.GetValue().strip()
-        selected_type = self.radio_box.GetStringSelection()
-        selected_repo = RepoType[selected_type]
-        if cr_number:
-            self.open_cr_handler(cr_number, selected_repo)
+    def on_send_email(self, event):
+        recipient_name = self.name_input.GetValue().strip()
+        recipient_email = self.email_input.GetValue().strip()
+        recipient_company = self.company_input.GetValue().strip()
+        if recipient_name and recipient_email and recipient_company:
+            EXPLORER.send_to_shipping_tool(self.items_to_ship)
             self.Destroy()
         else:
-            wx.MessageBox("Please enter a CR / XECO number.", "Missing Input", wx.OK | wx.ICON_WARNING)
-
-    def on_key_down(self, event):
-        key_code = event.GetKeyCode()
-        if key_code == wx.WXK_TAB:
-            current = self.radio_box.GetSelection()
-            new_selection = 1 if current == 0 else 0
-            self.radio_box.SetSelection(new_selection)
-        else:
-            event.Skip()  # Let other keys be processed normally
+            wx.MessageBox(
+                "Please enter all of the recipient information",
+                "Missing Input",
+                wx.OK | wx.ICON_WARNING
+            )
 
     def on_close(self, event):
         self.Destroy()

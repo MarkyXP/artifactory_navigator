@@ -16,6 +16,7 @@ class Buttons:
     OPEN : wx.Button
     DELETE : wx.Button
     DOCUSIGN : wx.Button
+    SHIPPING_TOOL : wx.Button
     REVISION : wx.Button
 
     def __iter__(self):
@@ -33,5 +34,6 @@ class Buttons:
             self.OPEN,
             self.DELETE,
             self.DOCUSIGN,
+            self.SHIPPING_TOOL,
             self.REVISION
         ])
