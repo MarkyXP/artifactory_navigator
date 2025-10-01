@@ -6,7 +6,6 @@
 
 ---
 @Author(s): Mark Evans  
-@Version: 1.0.20250620  
 
 ---------
 
@@ -66,18 +65,21 @@ In the interest of full disclosure, the following is a sample screenshot of an a
 <div class="page"/>
 
 ## Icons
-Siemens Industrial Experience - https://icon-sets.iconify.design/ix/
-Microsoft Codicons - https://icon-sets.iconify.design/codicon/
-Material Design Icons - https://icon-sets.iconify.design/mdi/
-Gitlab Icons - https://icon-sets.iconify.design/pajamas/
-https://icon-sets.iconify.design/streamline-pixel/
+The following were my 'top 4' potential icon sets to use:
+> [Icon Sets - Iconify - Siemens Industrial Experience](https://icon-sets.iconify.design/ix/)  
+> [Icon Sets - Iconify - Microsoft Codicons](https://icon-sets.iconify.design/codicon/)  
+> [Icon Sets - Iconify - Material Design Icons](https://icon-sets.iconify.design/mdi/)  
+> [Icon Sets - Iconify - Gitlab Icons](https://icon-sets.iconify.design/pajamas/)  
+
+I ended up settling on Siemens because it has a retro feel to use, and it feels appropraite for the industrial setting that I plan on using this app in.
 
 <div class="page"/>
 
 ## Building application
-Note: I have two secrets that I don't want to commit anywhere public:
+Note: I have three secrets that I don't want to commit anywhere public:
  1. The Key to access the users credentials
  2. The Key to access the Azure logs
+ 2. The Key to access the Azure Shipping Tool blobs
 
 These will be stored < TBC >, when building the application these should be put in a folder called `.env` in the root directory.
 
@@ -96,46 +98,20 @@ Link < TBC >
 5. Install the required libraries with `pip install -r requirements.txt`
 
 ### Build the application
-Run `auto-py-to-exe`
+To build this application:
+ 1. Install [Astral's uv](https://docs.astral.sh/uv/getting-started/installation/) with the powershell command:
 
-I suggest importing from the JSON file in `Assets/Build` and going from there, but here's the manual setup:
-
-1. Script Location : Select main.py
-2. Onefile : One Directory
-3. Console Window : Window Based (hide the console)
-4. Icon : Select Assets/LBS_AF_Logo.ico
-5. Additional Files: Select the `.env` file with the folder `.`
-5. Additional Files: Select the `Assets/LBS_AF_Logo.ico` file with the folder `Assets`
-6. Advanced:
-    - Name: LBS Artifactory Navigator
-
-Hit `CONVERT .PY TO .EXE` 👍
-
-Remember: You also need to have the `config.json` and `Leica Biosystems Melbourne Root CA.cer` in the root folder with the compiled .exe file.
-
-For those that don't want to use `Auto Py To Exe`, you can use pyinstaller with the command:
-```
-pyinstaller --noconfirm --onefile --windowed --icon "C:\Python\artifactory_navigator\Assets\Icons\LBS_AF_Logo.ico" --name "LBS Artifactory Navigator" --add-data "Assets;Assets" --add-data ".env;."  "C:\Python\artifactory_navigator\main.py"
-```
-
-### Building using Nuitka
-I'm toying around with using Nuitka to build the exe, it's supposed to compile down to raw C, rather than just zipping everything up.
-```bash
-nuitka --standalone --onefile --windows-icon-from-ico=Assets/LBS_AF_Logo.ico --output-dir=output_nuitka main.py
-```
-So, in summary:
-- It made the file 20% smaller, so from 22MB to 18MB
-- added ~20minutes to the compilation time
-- I couldn't usethe pymupdf library anymore, and
-- it was flagged as a virus.
- 
-I'll stick to pyinstaller
+    ```powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"```
+ 2. Download this source code to a folder, open the folder in command prompt.
+ 3. Run the terminal command `uv sync` to download the correct version of python and the libraries needed to run the code
+ 4. Run `uv pip install pyinstaller` to download the library needed to create the executable
+ 5. Run `uv run pyinstaller pyinstaller.spec`
 
 <div class="page"/>
 
 ## TODO
- - Testing more thoroughly
-    - Testing when a connection breaks
+ - [ ] Testing more thoroughly
+    - [x] Testing when a connection breaks
     - Testing renaming folders
  - Show loading bars when interacting with files.
  - Show splash screen when launching, instead of it just being silent.
@@ -151,7 +127,7 @@ However I'm not happy with the final result, it looks a bit boring, and I feel l
 I've done some updates to the way the password was encrypted, I'm encrypting the entire credentials store so the username will be included as well, which should enture unique encrypted stores even if users have the same password.
 
 ## What went well
-The entire thing was done over 2 days of work, including this document. So sticking entirely to Python which I'm comfortable with worked well.  
+The initial protoype was done over 2 days of work, including this document. So sticking entirely to Python which I'm comfortable with worked well.  
 I'm happy with the shortcut keys.  
 I tried a handful of LLM services (ChatGPT, etc) to 'vibe code' getting the basic file explorer working with drag / drop to ensure the GUI tool selected could support it. Using the LLM meant that I didn't need to become an expert in the library before committing to it being stuck with the drawbacks. I'll also mention that deepseek was the best LLM for generating the drag/drop functionality at the time of writing.  
 I spent a bit of time looking at how to encrypt the login credentials locally and encrypting it, I'm happy enough with the result.

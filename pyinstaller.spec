@@ -5,7 +5,9 @@ a = Analysis(
     binaries=[],
     datas=[
         ('assets/', 'assets/'),
-        ('config.json', 'app/core/config.json'),
+        ('app/core/config.json', 'app/core/config.json'),
+        (app/services/DSTFile', 'app/services/DSTFile'),
+        ('app/services/email_body.html'l', 'app/services/email_body.html'),
         ('.env', '.')
     ],
     hiddenimports=[],
@@ -30,7 +32,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
