@@ -95,7 +95,7 @@ def upload(
     return blob_client.url
 
 
-def get_access_link_w_token(dst_file_name: str, expiry_days: int = 7):
+def get_access_link_w_token(dst_file_name: str, expiry_days: int = 7) -> str:
     # Generate the temporary SAS token
     sas_token = generate_account_sas(
         account_name=STORAGE_ACCOUNT_NAME,
@@ -114,4 +114,4 @@ def get_access_link_w_token(dst_file_name: str, expiry_days: int = 7):
         STORAGE_ACCOUNT_CONTAINER
     )
     blob_client = container_client.get_blob_client(dst_file_name)
-    return blob_client.url
+    return dst_file_name + blob_client._query_str

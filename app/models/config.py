@@ -20,3 +20,4 @@ class Config:
     STORE_LOCATION_PATH : Path | None = None
     STORE_TEMPFILES_PATH : Path | None = None
     ICON_LOCATION : str | None = None
+    SHIPPING_TOOL_EMAIL_BODY_LOCATION : str | None = None

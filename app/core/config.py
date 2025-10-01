@@ -45,7 +45,8 @@ CONFIG = _Config(
     APP_SECRET = os.getenv("APP_SECRET"),
     AZURE_COSMOS_KEY = os.getenv("AZURE_COSMOS_KEY"),
     VERSION = os.getenv("VERSION", "DEBUG"),
-    ICON_LOCATION = ICON_FOLDER_PATH
+    ICON_LOCATION = ICON_FOLDER_PATH,
+    SHIPPING_TOOL_EMAIL_BODY_LOCATION = resource_path("app/services/email_body.html")
 )
 
 # Make some nice pathlib paths
