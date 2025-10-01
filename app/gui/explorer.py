@@ -658,8 +658,12 @@ class FileExplorer(wx.Frame):
         self.load_directory()
     
     def on_shipping_tool(self, *_):
-        items = self.get_selected_paths()
-        dlg = ShippingToolDialog(items)
+        selected_items = self.get_selected_paths()
+        selected_items = [f for f in selected_items if hasattr(f, "name") and not f.name == ".."]
+        selected_items = [
+            self.current_dir / f.name for f in selected_items
+        ]
+        dlg = ShippingToolDialog(selected_items)
         dlg.ShowModal()
 
     def on_selected(self, event):

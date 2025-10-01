@@ -14,7 +14,6 @@ from app.gui.explorer import FileExplorer
 from app.services import af as AF
 from app.services.revision import get_drawings_for_cr
 from app.models.af_search_results import AF_Result
-from app.services import shipping_tool
 
 _uname = ""
 _pw = ""
@@ -57,11 +56,14 @@ def compare_to_revision(path : ArtifactoryPath):
     )
     frame.Show()
 
-def send_to_shipping_tool(items : List[ArtifactoryPath], recipient_company : str):
+def download_to_zip_file(
+        items : List[ArtifactoryPath],
+        recipient_company : str
+    ) ->  Path:
     # Download & Zip the items
-    now = datetime.now().strftime(r"%d-%M-%y-%H-%m-%S")
+    now = datetime.now().strftime(r"%d-%m-%y-%H-%M-%S")
     output_path = CONFIG.STORE_TEMPFILES_PATH
-    archive = Path(f"LBS_{recipient_company}-{now}")
+    archive = Path(f"LBS_{recipient_company}-{now}.zip")
     archive_path = output_path / archive
     with zipfile.ZipFile(archive_path.as_posix(), 'w') as zipf:
         for af_file in items:
@@ -70,20 +72,13 @@ def send_to_shipping_tool(items : List[ArtifactoryPath], recipient_company : str
                 file_conn=af_file,
                 open=False,
             )
-            zipf.write(local_file)
-    # Send them through to the DST
-    response = shipping_tool.upload(
-        src = archive_path,
-        dst_file_name = archive_path.name,
-        sender_email = "lbsmel.hw-engineeringrelease@leicabiosystems.com",
-        recipient_name = "Tony",
-        recipient_email = "",
-        recipient_company = recipient_company
-    )
+            zipf.write(local_file, os.path.basename(local_file))
+    return archive_path
+
 
 
 def download_file(
-        self, file_conn: ArtifactoryPath, open=False, output_path: Path | None = None
+        file_conn: ArtifactoryPath, open=False, output_path: Path | None = None
     ) -> Path:
         # Make a temp folder if necessary
         if not output_path:

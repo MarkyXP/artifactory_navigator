@@ -5,6 +5,8 @@ import wx
 from app.core.config import CONFIG
 from app.models.af_search_results import AF_Result
 from app.services import explorer as EXPLORER
+from app.services import azure_storage
+from app.services import email
 
 class ShippingToolDialog(wx.Dialog):
     def __init__(self, items_to_ship : List[AF_Result]):
@@ -49,7 +51,7 @@ class ShippingToolDialog(wx.Dialog):
         # Bind events
         self.generate_email_btn.Bind(wx.EVT_BUTTON, self.on_send_email)
         self.Bind(wx.EVT_CLOSE, self.on_close)
-        self.Bind(wx.EVT_CHAR_HOOK, self.on_key_down)
+        # self.Bind(wx.EVT_CHAR_HOOK, self.on_send_email  )
 
         panel.SetSizer(vbox)
         self.Centre()
@@ -63,7 +65,23 @@ class ShippingToolDialog(wx.Dialog):
         recipient_email = self.email_input.GetValue().strip()
         recipient_company = self.company_input.GetValue().strip()
         if recipient_name and recipient_email and recipient_company:
-            EXPLORER.send_to_shipping_tool(self.items_to_ship)
+            # Download the files to a ZIP archive
+            archive_path = EXPLORER.download_to_zip_file(self.items_to_ship, recipient_company)
+            # Upload them to Azure and generate a download link
+            uploaded_url = azure_storage.upload(
+                src = archive_path,
+                dst_file_name = archive_path.name,
+                sender_email = "lbsmel.hw-engineeringrelease@leicabiosystems.com",
+                recipient_name = recipient_name,
+                recipient_email = recipient_email,
+                recipient_company = recipient_company
+            )
+            access_link = azure_storage.get_access_link_w_token(uploaded_url, 60)
+            email.generate_dst_email(
+                recipient_name = recipient_name,
+                recipient_email = recipient_email,
+                download_link = access_link
+            )
             self.Destroy()
         else:
             wx.MessageBox(
