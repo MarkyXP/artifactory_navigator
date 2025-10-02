@@ -4,18 +4,23 @@
 
 import shutil
 
+import pip_system_certs.wrapt_requests
 import wx
 
+# ------------------------------------------------------------------
+#  SSL - Patch certifi package to the the local machine cert store
+# ------------------------------------------------------------------
+pip_system_certs.wrapt_requests.inject_truststore()
+
 from app.core.config import CONFIG
-from app.services import explorer
-from app.services import login
-from app.services import azure_storage
+from app.services import azure_storage, explorer, login
 
 app = wx.App(False)
 conn = login.GetAFConnection(app)
 # User cancelled logging in
 if not conn:
     import sys
+
     sys.exit()
 try:
     # Start the background job to get DST config

@@ -5,12 +5,10 @@ a = Analysis(
     binaries=[],
     datas=[
         ('assets/', 'assets/'),
-        ('app/core/config.json', 'app/core/config.json'),
-        (app/services/DSTFile', 'app/services/DSTFile'),
-        ('app/services/email_body.html'l', 'app/services/email_body.html'),
+        ('app/services/email_body.html', 'app/services/'),
         ('.env', '.')
     ],
-    hiddenimports=[],
+    hiddenimports=['azure.storage.blob'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -33,10 +31,10 @@ exe = EXE(
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
-    disable_windowed_traceback=False,
+    disable_windowed_traceback=True,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['Assets/LBS_AF_Logo.ico'],
+    icon=['Assets/Icons/LBS_AF_Logo.ico'],
 )

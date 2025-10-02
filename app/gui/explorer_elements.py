@@ -43,7 +43,9 @@ def make_navbar(parent: wx.Window, sizer: wx.BoxSizer) -> models.Buttons:
         OPEN=_make_nav_btn(parent, "Open", "Open files"),
         DELETE=_make_nav_btn(parent, "Delete", "Delete files"),
         DOCUSIGN=_make_nav_btn(parent, "DocuSign", "Transfer to DocuSign"),
-        SHIPPING_TOOL=_make_nav_btn(parent, "SHIPPING_TOOL", "Generate email to sent the drawings to a supplier"),
+        SHIPPING_TOOL=_make_nav_btn(
+            parent, "SHIPPING_TOOL", "Generate email to sent the drawings to a supplier"
+        ),
         REVISION=_make_nav_btn(parent, "ReVision", "Compare CR to ReVision"),
     )
     for btn in buttons:

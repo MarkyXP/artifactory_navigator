@@ -10,21 +10,29 @@ from app.core.config import CONFIG
 
 def _af_items_to_html_table(items: List[ArtifactoryPath]):
     fmt_items = [
-        f"<tr><td>{item.name}</td><td>{item.stat().sha256}</td></tr>" for item in items
+        f"""
+            <tr>
+                <td style='font-size:8px; border-bottom: 1px solid #ddd'>
+                {item.name}
+                </td>
+                <td style='font-size:8px; border-bottom: 1px solid #ddd'>
+                    {item.stat().sha256.lower()}
+                </td>
+            </tr>"""
+        for item in items
     ]
     rows = "\n        ".join(fmt_items)
     html = dedent(
         f""" \
-        <table
-            style="border-collapse:collapse; border-top: 1px solid #cccccc; border-bottom: 1px solid #cccccc;"
-            cellspacing="0" cellpadding="0" border="0" align="center" width="640">
-            <tbody>
-                <tr>
-                    <td style="font-family:Arial>Document Name</td>
-                    <td style="font-family:Arial>Document SHA256</td>
-                </tr>
-                {rows}
-            </tbody>
+        <table style="font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#656565; padding-left: 5px; padding-right: 5px;" bgcolor="#f6f6f6" height="80" valign="middle" align="center" width="640">
+            <colgroup>
+                <col/><col/>
+            </colgroup>
+            <tr>
+                <th style="border-bottom: 1px solid #ddd">Document Enclosed</th>
+                <th style="border-bottom: 1px solid #ddd">SHA-256 Checksum</th>
+            </tr>
+            {rows}
         </table>
         """
     )
@@ -37,11 +45,13 @@ def generate_dst_email(
     recipient_company: str,
     retention_time: int,
     zip_filename: str,
-    af_items : List[ArtifactoryPath],
-    download_link : str,
+    af_items: List[ArtifactoryPath],
+    download_link: str,
 ):
     # Calculate the expiry date
-    expirydate = (datetime.now + timedelta(retention_time)).strftime("%-d/%b/%Y")
+    expirydate = (datetime.now() + timedelta(retention_time)).strftime(
+        "%A, %d %B %Y %H:%M:%S %p"
+    )
 
     # Create an instance of Outlook
     outlook = win32.Dispatch("outlook.application")
@@ -54,15 +64,16 @@ def generate_dst_email(
     email_body = email_body.replace("$Name", recipient_name)
     email_body = email_body.replace("$ExpiryTime", expirydate)
     email_body = email_body.replace("$FileSHATable", _af_items_to_html_table(af_items))
-    email_body = email_body.replace("$Filename", zip_filename)
+    email_body = email_body.replace("$FileName", zip_filename)
     email_body = email_body.replace("$URL", download_link)
+    email_body = email_body.replace("$YEAR", datetime.now().strftime("%Y"))
 
     # Set email properties
     mail.To = recipient_email  # Replace with the recipient's email address
     mail.Subject = f"File download from Leica BioSystems for {recipient_company}"
     mail.HTMLBody = email_body
-    # mail.CC = "lbsmel.hw-engineeringrelease@leicabiosystems.com"
-    # mail._oleobj_.Invoke(*(64209, 0, 8, 0, "mark2@lbs.com"))
+    mail.CC = "lbsmel.hw-engineeringrelease@leicabiosystems.com"
+    # mail._oleobj_.Invoke(*(64209, 0, 8, 0, "LBSMEL.HW-EngineeringRelease@leicabiosystems.com"))
 
-    # Display the email (does not send it)
-    mail.Display(True)  # Set to True if you want the window to be modal
+    # Display the email
+    mail.Display()

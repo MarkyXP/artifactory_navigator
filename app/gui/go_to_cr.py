@@ -1,8 +1,10 @@
 import os
+
 import wx
 
 from app.core.config import CONFIG
 from app.models.go_to_cr import RepoType
+
 
 class CRDialog(wx.Dialog):
     def __init__(self, open_cr_handler):
@@ -27,7 +29,7 @@ class CRDialog(wx.Dialog):
             label="Select Type:",
             choices=list(RepoType.keys()),
             majorDimension=1,
-            style=wx.RA_SPECIFY_ROWS
+            style=wx.RA_SPECIFY_ROWS,
         )
         vbox.Add(self.radio_box, 0, wx.ALL | wx.EXPAND, 10)
 
@@ -58,7 +60,11 @@ class CRDialog(wx.Dialog):
             self.open_cr_handler(cr_number, selected_repo)
             self.Destroy()
         else:
-            wx.MessageBox("Please enter a CR / XECO number.", "Missing Input", wx.OK | wx.ICON_WARNING)
+            wx.MessageBox(
+                "Please enter a CR / XECO number.",
+                "Missing Input",
+                wx.OK | wx.ICON_WARNING,
+            )
 
     def on_key_down(self, event):
         key_code = event.GetKeyCode()

@@ -4,7 +4,6 @@
     "STORE_LOCATION" : "~/AppData/Local/Artifactory_Navigator/creds.json",
     "AF_URL" : "https://aumel-artifactory.leicabio.com/artifactory",
     "AF_PRETTY_URL" : "https://aumel-artifactory.leicabio.com/ui/repos/tree/General",
-    "HTTP_CERT_FNAME" : "Leica Biosystems Melbourne Root CA.cer",
     "AZURE_COSMOS_ENDPOINT" : "https://mark.documents.azure.com:443/",
     "AZURE_COSMOS_DATABASE_ID" : "Logs",
     "AZURE_COSMOS_CONTAINER_ID" : "All",

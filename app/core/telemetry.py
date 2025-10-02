@@ -11,12 +11,10 @@ _disable_logging = False
 _auth_acquired = False
 try:
     _client = CosmosClient(
-        url = CONFIG.AZURE_COSMOS_ENDPOINT,
-        credential = CONFIG.AZURE_COSMOS_KEY,
-        connection_verify = False
+        url=CONFIG.AZURE_COSMOS_ENDPOINT,
+        credential=CONFIG.AZURE_COSMOS_KEY,
     )
     _session = Session()
-    _session.verify = CONFIG.HTTP_CERT_FNAME
     _client.session = _session
 
     _database = _client.get_database_client(CONFIG.AZURE_COSMOS_DATABASE_ID)
@@ -26,7 +24,8 @@ try:
 except Exception as _:
     _disable_logging = True
 
-def set_auth(username : str, pw : str):
+
+def set_auth(username: str, pw: str):
     """
     Store the users credentials to get through the
     LBS firewall to do my logging.
@@ -37,8 +36,9 @@ def set_auth(username : str, pw : str):
     _session.auth = (username, pw)
     _auth_acquired = True
 
+
 @run_in_background
-def log(msg : str):
+def log(msg: str):
     global _msg_count, _disable_logging, _auth_acquired
     if _disable_logging:
         return
@@ -51,14 +51,13 @@ def log(msg : str):
         with warnings.catch_warnings(action="ignore"):
             _container.upsert_item(
                 {
-                    "id" : _session_id + "_" + str(_msg_count),
+                    "id": _session_id + "_" + str(_msg_count),
                     "src": "LBS_Artifactory_Navigator",
-                    "session_id" : _session_id,
-                    "msg" : msg,
+                    "session_id": _session_id,
+                    "msg": msg,
                 }
             )
     except Exception as _:
         # Logging failed for some reason, just disable it so it doesn't cause timeout delays
         _disable_logging = True
     _msg_count += 1
-    

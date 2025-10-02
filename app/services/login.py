@@ -5,8 +5,7 @@ import dohq_artifactory.exception
 import wx
 from artifactory import ArtifactoryPath
 
-from app.core import credentials
-from app.core import telemetry
+from app.core import credentials, telemetry
 from app.gui.login import LoginDialog
 from app.services.af import get_af_conn
 
@@ -22,7 +21,7 @@ def _test_af_creds(uname: str, pw: str) -> ArtifactoryPath | None:
         conn.get_repositories()
     # Bad credentials
     except dohq_artifactory.exception.ArtifactoryException as e:
-        #TODO: I SHOULD RETURN THE ERROR
+        # TODO: I SHOULD RETURN THE ERROR
         msg = f"Error: {e.args[0]}"
         if "404" in e.args[0]:
             msg = "Error: Could not connect to Artifactory"

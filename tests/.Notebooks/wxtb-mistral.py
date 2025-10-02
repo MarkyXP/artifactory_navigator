@@ -1,6 +1,8 @@
-import wx
 import os
 import shutil
+
+import wx
+
 
 class FileExplorerFrame(wx.Frame):
     def __init__(self, *args, **kw):
@@ -10,7 +12,7 @@ class FileExplorerFrame(wx.Frame):
         self.Centre()
 
     def InitUI(self):
-        self.SetTitle('Simple File Explorer')
+        self.SetTitle("Simple File Explorer")
         self.SetSize((800, 600))
 
         panel = wx.Panel(self)
@@ -78,7 +80,8 @@ class FileExplorerFrame(wx.Frame):
                 # Handle copy operation
                 pass
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app = wx.App()
     frame = FileExplorerFrame(None)
     frame.Show()

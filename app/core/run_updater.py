@@ -1,6 +1,7 @@
 import subprocess
 import sys
 
+
 def run_updater():
     sys.argv
     if len(sys.argv) == 1:
@@ -17,7 +18,7 @@ def run_updater():
             startupinfo=startupinfo,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            shell=False
+            shell=False,
         )
         # Detach from the process
         # process.close()

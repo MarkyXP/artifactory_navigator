@@ -10,9 +10,9 @@ from artifactory import ArtifactoryPath
 from app.core.config import CONFIG
 from app.core.telemetry import log
 from app.gui import explorer_elements as elements
-from app.models.af_search_results import AF_Repo, AF_Result
 from app.gui.go_to_cr import CRDialog
 from app.gui.shipping_tool import ShippingToolDialog
+from app.models.af_search_results import AF_Repo, AF_Result
 from app.services import af as AF
 from app.services import explorer as EXPLORER
 from app.services import file_handler
@@ -93,12 +93,16 @@ class FileExplorer(wx.Frame):
         self.file_list.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         # Bindings - Search
         self.search_input.Bind(wx.EVT_KEY_UP, self.on_search_key_down)
-        self.search_results.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_search_item_activated)
+        self.search_results.Bind(
+            wx.EVT_LIST_ITEM_ACTIVATED, self.on_search_item_activated
+        )
         # Global keybindings
-        accel_tbl = wx.AcceleratorTable([
-            (wx.ACCEL_CTRL, ord("F"), wx.ID_FIND),
-            (wx.ACCEL_CTRL, ord("G"), wx.ID_JUMP_TO)
-        ])
+        accel_tbl = wx.AcceleratorTable(
+            [
+                (wx.ACCEL_CTRL, ord("F"), wx.ID_FIND),
+                (wx.ACCEL_CTRL, ord("G"), wx.ID_JUMP_TO),
+            ]
+        )
         self.SetAcceleratorTable(accel_tbl)
         self.Bind(wx.EVT_MENU, self.on_search_toggle, id=wx.ID_FIND)
         self.Bind(wx.EVT_MENU, self.start_go_to, id=wx.ID_JUMP_TO)
@@ -106,7 +110,9 @@ class FileExplorer(wx.Frame):
         # Set the window to the foreground
         panel.SetFocus()
 
-    def load_directory(self, files_to_highlight: List[str] = (), add_to_back_queue : bool = True):
+    def load_directory(
+        self, files_to_highlight: List[str] = (), add_to_back_queue: bool = True
+    ):
         """Load the contents of the current directory into the list
 
         Arguments:
@@ -318,7 +324,7 @@ class FileExplorer(wx.Frame):
             # The back path is this path, skip it
             pass
         # We never found a path to go to, so don't do anything.
-    
+
     def on_forward(self, _):
         """Navigate forward a directory"""
         while self.path_forward_stack:
@@ -532,7 +538,6 @@ class FileExplorer(wx.Frame):
         # Make a temp folder if necessary
         if not output_path:
             output_path = CONFIG.STORE_TEMPFILES_PATH
-            output_path.mkdir(parents=True, exist_ok=True)
         fname = file_conn.name
         tmp_file_path = output_path / fname
         try:
@@ -580,11 +585,11 @@ class FileExplorer(wx.Frame):
         # if evt:
         #    evt.Skip()
 
-    def on_search_item_activated(self, event : wx.ListEvent):
+    def on_search_item_activated(self, event: wx.ListEvent):
         """Handle double-click on item"""
         row_selected_no = event.Index
         folder_path = event.Text
-        file_name = self.search_results.GetItem(row_selected_no,1).Text
+        file_name = self.search_results.GetItem(row_selected_no, 1).Text
         self.current_dir = self.conn / folder_path
         self.load_directory([file_name])
         self.file_list.SetFocus()
@@ -635,7 +640,7 @@ class FileExplorer(wx.Frame):
     def start_go_to(self, *_):
         dlg = CRDialog(self.open_cr_handler)
         dlg.ShowModal()
-    
+
     def open_cr_handler(self, cr_number: str, selected_type: str):
         folders = AF.find_folders(self.conn, selected_type, cr_number)
         # If the folder's not found, make it?
@@ -643,7 +648,7 @@ class FileExplorer(wx.Frame):
             dlg_result = wx.MessageBox(
                 f"Folder not found for {cr_number}.\nWould you like to create it?",
                 "Folder Not Found",
-                wx.YES_NO | wx.ICON_QUESTION
+                wx.YES_NO | wx.ICON_QUESTION,
             )
             if dlg_result == wx.NO:
                 return
@@ -656,13 +661,13 @@ class FileExplorer(wx.Frame):
         folder = folders[0]
         self.current_dir = folder
         self.load_directory()
-    
+
     def on_shipping_tool(self, *_):
         selected_items = self.get_selected_paths()
-        selected_items = [f for f in selected_items if hasattr(f, "name") and not f.name == ".."]
         selected_items = [
-            self.current_dir / f.name for f in selected_items
+            f for f in selected_items if hasattr(f, "name") and not f.name == ".."
         ]
+        selected_items = [self.current_dir / f.name for f in selected_items]
         dlg = ShippingToolDialog(selected_items)
         dlg.ShowModal()
 
@@ -677,10 +682,12 @@ class FileExplorer(wx.Frame):
         self.buttons.DOCUSIGN.Disable()
         # See what's highlighted
         selected_items = self.get_selected_paths()
-        selected_items = [f for f in selected_items if hasattr(f, "name") and not f.name == ".."]
+        selected_items = [
+            f for f in selected_items if hasattr(f, "name") and not f.name == ".."
+        ]
         # Disable the back button if there are no other folders to go back to
         if not any([not self.current_dir == path for path in self.path_backward_stack]):
-                self.buttons.BACK.Disable()
+            self.buttons.BACK.Disable()
         # Disable the forward button
         if not self.path_forward_stack:
             self.buttons.FORWARD.Disable()
@@ -699,6 +706,7 @@ class FileExplorer(wx.Frame):
             self.buttons.DOWNLOAD.Disable()
             self.buttons.OPEN.Disable()
             self.buttons.DELETE.Disable()
+            self.buttons.SHIPPING_TOOL.Disable()
         if not re.findall(r"(\d{5})", self.current_dir.path_in_repo):
             self.buttons.REVISION.Disable()
 

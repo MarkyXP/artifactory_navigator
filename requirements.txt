@@ -1,8 +1,11 @@
-wxpython         # GUI
-python-dotenv    # Loading app secrets
-cryptography     # Storing user creds
-requests         # Used to add cert to AF
-dohq-artifactory # Talking to AF
-azure-cosmos     # Logging
-# PyMuPDF          # Analyzing PDFs
-pywin32         # Generating emails
+wxpython            # GUI
+python-dotenv       # Loading app secrets
+cryptography        # Storing user creds
+requests            # Used to add cert to AF
+dohq-artifactory    # Talking to AF
+azure-cosmos        # Logging
+# PyMuPDF           # Analyzing PDFs
+pywin32             # Generating emails
+azure.storage.blob  # Uploading to the Document Shipping Tool
+pywin32             # Generating DST Email
+pip-system-certs    # Working with SSL

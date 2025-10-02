@@ -1,5 +1,8 @@
 import sys
-from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel
+
+from PySide6.QtWidgets import (QApplication, QFileDialog, QLabel, QPushButton,
+                               QVBoxLayout, QWidget)
+
 
 class FileExplorerApp(QWidget):
     def __init__(self):
@@ -35,15 +38,18 @@ class FileExplorerApp(QWidget):
 
     def open_selected_file(self):
         # Open the selected file
-        if hasattr(self, 'selected_file'):
+        if hasattr(self, "selected_file"):
             try:
-                with open(self.selected_file, 'r') as file:
+                with open(self.selected_file, "r") as file:
                     content = file.read()
-                    print(f"File Content:\n{content}")  # Print the file content to the console
+                    print(
+                        f"File Content:\n{content}"
+                    )  # Print the file content to the console
             except Exception as e:
                 print(f"Error opening file: {e}")
         else:
             print("No file selected.")
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

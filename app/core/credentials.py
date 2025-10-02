@@ -9,7 +9,8 @@ from app.core.config import CONFIG
 _key = CONFIG.APP_SECRET.encode()
 _fernet = Fernet(_key)
 
-def _get_login_users_full_name(username : str | None = None) -> str:
+
+def _get_login_users_full_name(username: str | None = None) -> str:
     """
 
     Returns a string with the domain name registered against the username,
@@ -32,11 +33,13 @@ def _get_login_users_full_name(username : str | None = None) -> str:
     full_name = name.replace(b"Full Name", b"").strip().decode(errors="ignore")
     return full_name
 
+
 def _get_login_username() -> str:
     """
     Returns the users username, e.g. "zmze"
     """
     return os.getlogin()
+
 
 def _get_store() -> dict:
     """
@@ -55,7 +58,8 @@ def _get_store() -> dict:
                 return {}
     return {}
 
-def _save_store(store : dict):
+
+def _save_store(store: dict):
     """
     Encrypts the store with user details and saves it.
     """
@@ -66,6 +70,7 @@ def _save_store(store : dict):
     with store_path.open(mode="w") as f:
         f.write(encrypted_store_json)
 
+
 def get_username() -> str:
     """
     Returns the users username to log in to Artifactory.
@@ -75,13 +80,15 @@ def get_username() -> str:
     store = _get_store()
     return store.get("username", _get_login_username())
 
-def set_username(username : str) -> None:
+
+def set_username(username: str) -> None:
     """
     Saves the username to the store for quick login next time
     """
     store = _get_store()
     store["username"] = username
     _save_store(store)
+
 
 def get_password() -> str:
     """
@@ -90,7 +97,8 @@ def get_password() -> str:
     store = _get_store()
     return store.get("pass", "")
 
-def set_password(pw : str) -> None:
+
+def set_password(pw: str) -> None:
     """
     Encrypts the password using fernet encryption
     and saves it to the store.

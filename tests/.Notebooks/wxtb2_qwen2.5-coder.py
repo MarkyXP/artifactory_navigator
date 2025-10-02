@@ -1,5 +1,7 @@
-import wx
 import os
+
+import wx
+
 
 class FileExplorer(wx.Frame):
     def __init__(self, parent, title):
@@ -10,8 +12,8 @@ class FileExplorer(wx.Frame):
 
         # Create a list control to display files
         self.list_ctrl = wx.ListCtrl(panel, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
-        self.list_ctrl.InsertColumn(0, 'File Name', width=500)
-        self.list_ctrl.InsertColumn(1, 'File Path', width=300)
+        self.list_ctrl.InsertColumn(0, "File Name", width=500)
+        self.list_ctrl.InsertColumn(1, "File Path", width=300)
 
         # Create a sizer to layout the widgets
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -50,7 +52,8 @@ class FileExplorer(wx.Frame):
             self.list_ctrl.InsertItem(index, os.path.basename(file_path))
             self.list_ctrl.SetItem(index, 1, file_path)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app = wx.App(False)
-    frame = FileExplorer(None, 'File Explorer')
+    frame = FileExplorer(None, "File Explorer")
     app.MainLoop()

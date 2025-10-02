@@ -1,15 +1,17 @@
 import wx
+
 from app.core.config import CONFIG
 
+
 class LoginDialog(wx.Dialog):
-    def __init__(self, default_username : str, callback_on_complete, test_af_creds):
+    def __init__(self, default_username: str, callback_on_complete, test_af_creds):
         super().__init__(None, title=CONFIG.APP_NAME, size=(300, 200))
         icon = wx.Icon(CONFIG.APP_ICON_PATH, wx.BITMAP_TYPE_ICO)
         self.SetIcon(icon)
-        
+
         panel = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
-        
+
         # Username
         hbox1 = wx.BoxSizer(wx.HORIZONTAL)
         user_label = wx.StaticText(panel, label="Username:")
@@ -18,7 +20,7 @@ class LoginDialog(wx.Dialog):
         hbox1.Add(user_label, 0, wx.ALL, 5)
         hbox1.Add(self.user_text, 1, wx.ALL, 5)
         vbox.Add(hbox1, 0, wx.EXPAND)
-        
+
         # Password
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
         pass_label = wx.StaticText(panel, label="Password:")
@@ -26,12 +28,12 @@ class LoginDialog(wx.Dialog):
         hbox2.Add(pass_label, 0, wx.ALL, 5)
         hbox2.Add(self.pass_text, 1, wx.ALL, 5)
         vbox.Add(hbox2, 0, wx.EXPAND)
-        
+
         # Remember Me Checkbox
         self.remember_checkbox = wx.CheckBox(panel, label="Remember Me")
         self.remember_checkbox.SetValue(False)
         vbox.Add(self.remember_checkbox, 0, wx.LEFT | wx.TOP, 10)
-        
+
         # Buttons
         hbox3 = wx.BoxSizer(wx.HORIZONTAL)
         login_btn = wx.Button(panel, label="Login")
@@ -39,7 +41,7 @@ class LoginDialog(wx.Dialog):
         hbox3.Add(login_btn, 0, wx.ALL, 5)
         hbox3.Add(cancel_btn, 0, wx.ALL, 5)
         vbox.Add(hbox3, 0, wx.ALIGN_CENTER)
-        
+
         # Events
         login_btn.Bind(wx.EVT_BUTTON, self.on_login)
         cancel_btn.Bind(wx.EVT_BUTTON, self.on_cancel)
@@ -67,14 +69,9 @@ class LoginDialog(wx.Dialog):
         else:
             remember_me = self.remember_checkbox.GetValue()
             # Close up
-            self.callback_on_complete(
-                username,
-                password,
-                remember_me,
-                conn
-            )
+            self.callback_on_complete(username, password, remember_me, conn)
             self.Destroy()
-    
+
     def on_cancel(self, event):
         self.Destroy()
         wx.GetApp().ExitMainLoop()

@@ -1,8 +1,10 @@
-import wx
 import os
 import shutil
 from urllib.parse import urlparse
+
 import win32api  # For opening files with default OS handler (works on Windows)
+import wx
+
 
 class FileBrowser(wx.Frame):
     def __init__(self, title):
@@ -15,7 +17,7 @@ class FileBrowser(wx.Frame):
 
         # File list
         self.file_list = wx.ListBox(left_panel, style=wx.LB_EXTENDED)
-        files = [f for f in os.listdir('.') if os.path.isfile(f)]
+        files = [f for f in os.listdir(".") if os.path.isfile(f)]
         self.file_list.InsertItems(files, 0)
 
         # Status bar
@@ -47,7 +49,9 @@ class FileBrowser(wx.Frame):
 
         left_panel.SetSizer(left_sizer)
         right_panel.SetSizer(right_sizer)
-        self.splitter.SplitVertically(left_panel, right_panel)  # Split the window into two panels
+        self.splitter.SplitVertically(
+            left_panel, right_panel
+        )  # Split the window into two panels
 
         # Drag and drop
         # self.file_list.Bind(wx.EVT_DROPFiles, self.OnDropFiles)
@@ -66,14 +70,14 @@ class FileBrowser(wx.Frame):
             return
         copied_files = [self.file_list.GetString(i) for i in selected_indices]
         clipboard = wx.Clipboard()
-        clipboard.SetData(wx.DataObjectText('\n'.join(copied_files)))
+        clipboard.SetData(wx.DataObjectText("\n".join(copied_files)))
         self.status_bar.SetStatusText("Files copied to clipboard")
 
     def Paste(self, event):
         clipboard = wx.Clipboard()
         data = clipboard.GetData(wx.DataFormat(wx.DF_TEXT))
         if data:
-            files_pasted = data.GetText().split('\n')
+            files_pasted = data.GetText().split("\n")
             for file in files_pasted:
                 if file.strip() and os.path.isfile(file):
                     self.file_list.Append(os.path.basename(file))
@@ -90,12 +94,13 @@ class FileBrowser(wx.Frame):
         try:
             # On Windows, use win32api to open the file with default handler
             # For other OS, you might need a different approach
-            win32api.ShellExecute(0, 'open', filename, '', '', 1)
+            win32api.ShellExecute(0, "open", filename, "", "", 1)
         except Exception as e:
             wx.MessageBox(f"Error opening file: {e}", "Error")
 
     def Close(self, event):
         self.Destroy()
+
 
 if __name__ == "__main__":
     app = wx.App()

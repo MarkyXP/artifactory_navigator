@@ -2,25 +2,19 @@ import pathlib
 import subprocess
 import textwrap
 import threading
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-
 from artifactory import ArtifactoryPath
-from azure.storage.blob import (
-    AccountSasPermissions,
-    BlobServiceClient,
-    ResourceTypes,
-    generate_account_sas,
-)
-from requests import Session
+from azure.storage.blob import (AccountSasPermissions, BlobServiceClient,
+                                ResourceTypes, generate_account_sas)
 
 from app.core.config import CONFIG
 
-AF_SESSION : ArtifactoryPath = None
+AF_SESSION: ArtifactoryPath = None
 AZURE_KEY = ""
 STORAGE_ACCOUNT_NAME = ""
 STORAGE_ACCOUNT_CONTAINER = ""
+
 
 def _get_azure_details():
     """
@@ -33,22 +27,41 @@ def _get_azure_details():
     _session = AF_SESSION.session
     response = _session.get(CONFIG.AZURE_DST_SETTINGS)
     jresp = response.json()
-    STORAGE_ACCOUNT_NAME = jresp["Azure"]['storageAccountName']
-    STORAGE_ACCOUNT_CONTAINER = jresp["Azure"]['storageContainerName']
-    _encrypted_key = jresp["Azure"]['storageAccountKey']
-    decrypt_cmd = textwrap.dedent("""\
-        $key = Get-Content app\services\DSTFile
-        $data = \"""" + _encrypted_key + """\"
+    STORAGE_ACCOUNT_NAME = jresp["Azure"]["storageAccountName"]
+    STORAGE_ACCOUNT_CONTAINER = jresp["Azure"]["storageContainerName"]
+    _encrypted_key = jresp["Azure"]["storageAccountKey"]
+    key_location = (
+        r"app\services\DSTFile"
+        if pathlib.Path(r"app\services\DSTFile").exists()
+        else "DSTFile"
+    )
+    decrypt_cmd = textwrap.dedent(
+        """\
+        $key = Get-Content """
+        + key_location
+        + """
+        $data = \""""
+        + _encrypted_key
+        + """\"
         $decrypted = $data | ConvertTo-SecureString -key $key | ForEach-Object { [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($_)) }
         $decrypted
-    """).strip()
+    """
+    ).strip()
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= (
+        subprocess.STARTF_USESHOWWINDOW
+    )  # suppresses the new window when launching PowerShell
     result = subprocess.run(
         ["powershell", "-Command", decrypt_cmd],
         capture_output=True,  # Captures stdout and stderr
-        text=True             # Returns output as a string instead of bytes
+        text=True,  # Returns output as a string instead of bytes
+        startupinfo=startupinfo,
     )
     AZURE_KEY = result.stdout
+
+
 get_azure_details = threading.Thread(target=_get_azure_details, daemon=True)
+
 
 def upload(
     src: pathlib.Path,
@@ -58,7 +71,6 @@ def upload(
     recipient_email: str,
     recipient_company: str,
 ):
-    
     """
     Uploads a file to Azure Blob Storage with custom metadata.
 
