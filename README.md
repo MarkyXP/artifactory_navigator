@@ -1,41 +1,89 @@
-# LBS Artifactory Navigator
+<div align="center">
+    <p align="center">
 
-![Powered by Python](https://img.shields.io/badge/Python-3674a7?logo=python&logoColor=yellow) 
-![Powered by Artifactory](https://img.shields.io/badge/DOHQ%20Artifactory-1f2f4a?logo=data:image/png;base64,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) 
-![Powered by wxpython](https://img.shields.io/badge/WX%20Python-595959?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwwAADsMBx2+oZAAAAX9JREFUeJy1lkGShCAMRaHK1Vxj1t5iODVzC+8yWxvsBkNIAonMr+pqBeW/BAxsx3E4Sfu+n+U6PevdYm0j86R6770/V0OwANg8K99nCNj2FIgEgGlPhtUcgoD+R1lpAKpxTL9AmjkuK1aICnCZR9ATacMCguGsEhdhgcBaYdwAdNEjCCiclQswvsewTMPmtMJZife/BeICyC+JWSAgVkmfAUmGLFSAmoXPQKSCWxp9A1AgvhLEd2CeXmzeAWTzvwTBbU+wQkpfDZyG0WZWAYq5RAsHGE6X6z9van2YF2ETYeSfaUCJRXoBlOhnsgD13jFTXfhFHcBoBHoBFFOLedb5I0NI7WvrgCCu2KkBypzi/ciahWkA6qygFZWFKQDVPqHUEOA/zYcAGvNu/tE43Aal/wos8x/5yikey7vow10Bvb/rgBQ9hKD0uA6I5oFvtxUilMqZyJv9ALSVa9OZcEogSumExAKoz4kfU/j+zCtiBqaPaUrTaQA4KJ7HJ6ZQLxuQGijVwsLWAAAAAElFTkSuQmCC) 
+# LBS Artifactory Navigator ![](Assets/LBS_AF_Logo.png)
+[![Python](https://img.shields.io/badge/Python%203.13-3776AB?logo=python&logoColor=fff)](https://docs.astral.sh/uv/getting-started/installation/)
+[![WXPython](https://img.shields.io/badge/WX%20Python-3969A9?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwwAADsMBx2+oZAAAAX9JREFUeJy1lkGShCAMRaHK1Vxj1t5iODVzC+8yWxvsBkNIAonMr+pqBeW/BAxsx3E4Sfu+n+U6PevdYm0j86R6770/V0OwANg8K99nCNj2FIgEgGlPhtUcgoD+R1lpAKpxTL9AmjkuK1aICnCZR9ATacMCguGsEhdhgcBaYdwAdNEjCCiclQswvsewTMPmtMJZife/BeICyC+JWSAgVkmfAUmGLFSAmoXPQKSCWxp9A1AgvhLEd2CeXmzeAWTzvwTBbU+wQkpfDZyG0WZWAYq5RAsHGE6X6z9van2YF2ETYeSfaUCJRXoBlOhnsgD13jFTXfhFHcBoBHoBFFOLedb5I0NI7WvrgCCu2KkBypzi/ciahWkA6qygFZWFKQDVPqHUEOA/zYcAGvNu/tE43Aal/wos8x/5yikey7vow10Bvb/rgBQ9hKD0uA6I5oFvtxUilMqZyJv9ALSVa9OZcEogSumExAKoz4kfU/j+zCtiBqaPaUrTaQA4KJ7HJ6ZQLxuQGijVwsLWAAAAAElFTkSuQmCC)](https://docs.wxpython.org/)
+[![Artifactory](https://img.shields.io/badge/Artifactory-3674a7?logo=jfrog&logoColor=white)](https://aumel-artifactory.leicabio.com/ui/repos/tree/General/)
+![Windows 11](https://custom-icon-badges.demolab.com/badge/Windows%2011-0078D6?logo=windows11&logoColor=white)
+[![Microsoft Azure](https://custom-icon-badges.demolab.com/badge/Azure%20Storage-0089D6?logo=msazure&logoColor=white)](https://portal.azure.com/)
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions%20CI-2088FF?logo=github-actions&logoColor=white)](https://github.com/MarkyXP/artifactory_navigator) 
+  </p>
+</div>
 
----
+---------
 @Author(s): Mark Evans  
 
 ---------
 
 
 ## Summary:
-This is a simple file explorer for navigating Artifactory:
+This is a file explorer for navigating Artifactory:
 
-![DHFR_WIP_Screenshot](Assets/Screenshot.png)
+![DHFR_WIP_Screenshot](Assets/Screenshots/Screenshot.png)
 
 ## Features:
 - Username / Password can be encrypted and saved locally for quick login
-- Drag / Drop files to upload
-- Drag / Drop files to download
+   - ![](Assets/Screenshots/Remember%20Login.png)
+   - Note that the credentials are saved to `%LocalAppData%\Artifactory_Navigator\creds.json`
+- Drag / Drop files to **upload**
+   - ![](Assets/Screenshots/DragDropUpload.gif)
+- Drag / Drop files to **download**
+   - ![](Assets/Screenshots/DragDropDownload.gif)
 - Supports the following shortcut keys:
-    - Control + C : Note this downloads the highlighted files to a temp folder, so they can be pasted natively into Windows File Explorer, etc.
-    - Control + V : Note this will upload the files
-    - Control + F : Opens a window allowing the user to search for a document by SHA-256 number, navigates to the first result
-    - Alt Left : Simple implementation to go 'up' a directory
-    - Backspace: Simple implementation to go 'up' a directory
-    - Control Shift N : Make a folder & open it
-    - Delete : Deletes the file(s) highlighted
-    - Enter : Downloads and opens the file(s) highlighted, or just opens the folder, depending on what's highlighted.
+   - Double Left Click : This will download the file to a temp folder and open it, or opens the folder, as appropriate
+   - Control + C : Note this downloads the highlighted files to a temp folder, so they can be pasted natively into Windows File Explorer, etc.
+   - Control + V : Note this will upload the files
+   - Control + F : Opens a window allowing the user to search for a document by either its name or SHA-256 number
+   - Control + G : Input a CR number (e.g. `12791`) and it will navigate to the project folder (e.g. `/ddc-wip-prod-mel/CR12791`)
+   - Alt Left : Simple implementation to go 'up' a directory
+   - Backspace: Simple implementation to go 'up' a directory
+   - F2: Allows renaming of a file. You can also slow double left click.
+   - Control Shift N : Make a folder & open it
+   - Delete : Deletes the file(s) highlighted
+   - Enter : Downloads and opens the file(s) highlighted, or opens the folder, as appropriate
 - Right click Menu
-    - Has options to copy the file path, the sha256 number, download the file, etc.
+   - ![](Assets/Screenshots/RightClickMenu.png)
+   - 'Check against ReVision' will check the files in Artifactory to the ones listed in ReVision
+   - 'Copy as Path' will put the download link into the clipboard, and can be pasted in other applications with `Control + V`
+      - If multiple files are selected the paths will be separated with a `,` character
+   - 'Copy SHA' will put the SHA256 number into the clipboard, and can be pasted in other applications with `Control + V`
+      - If multiple files are selected the paths will be separated with a `newline` character
+   - 'Copy as Table' will put the Document Name, Modified By, and SHA256 into the clipboard, and can be pasted in other applications with `Control + V`
+      - If multiple files are selected the paths will be separated with a `newline` character
+   
 - When uploading ZIP files that only contain a document and a Summary file (i.e. ZIP files downloaded from DocuSign), AF Navigator will automatically unzip these files and rename the Summary file appropriately.
 
 <div class="page"/>
 
 ## Usage:
-< TBC - My plan is to add gifs here. >  
+
+### Basic Navigation
+- When first opened LBS Artifactory Navigator opens to the root Artifactory folder
+- See the 'Features' above for basic navigation
+
+### Document Shipping Tool
+- The Leica Document Shipping Tool, which used to send soft copy drawings to suppliers, has been integrated to LBS Artifactory Navigtor.
+- Ensure Microsoft Outlook is open in the background before proceeding.
+1. To send drawings to a supplier, select the files to ship:
+    ![](Assets/Screenshots/DST_1.png)
+2. Fill in the supplier details, and how long they should have access for. Then click 'Generate Email'.
+    ![](Assets/Screenshots/DST_2.png)
+3. Review the email, modify it as needed, and send.  
+   Note: The email may open in the background, you may need to click on Outlook to bring this window to the foreground.
+    ![](Assets/Screenshots/DST_3.png)
+
+### ReVision Report
+When AF Navigator is in a project folder (i.e. the folder has a 5 digit number in it) a report can be generated comparing the files in the folder to the documents that are listed in ReVision as being updated:
+![](Assets/Screenshots/ReVision_Report.png)
+
+- Items with a **GREEN** background are **MATCHING BETWEEN REVISION AND ARTIFACTORY**
+- Items with a **WHITE** background are **MISSING FROM ARTIFACTORY**
+   - e.g. In the above screenshot 26.0454.500 is listed in ReVision as being updated to H01, however 26.0454.500.H01 has not been uploaded yet
+   - Note for 45.2403.500 ReVision expects version A03, however A01 and A02 have been uploaded to Artifactory, and they have a white background. Technically these prototype documents are not supposed to be part of the change pack, they are not listed in ReVision, and should not be distributed by DDC.
+- Items with a **GREY** background are **NOT LISTED AS BEING ARTIFACTORY DOCUMENTS**
+   - e.g. In the above screenshot 45.2403.100 is listed in ReVision as being updated to H01, however in ReVision's Document Properties window the 'Document Location' does not state that the file should be in Artifactory.
+      - ![](Assets/Screenshots/ReVision_Document_Location.png)
 
 <div class="page"/>
 
@@ -46,7 +94,7 @@ This is a simple file explorer for navigating Artifactory:
     from cryptography.fernet import Fernet
     Fernet.generate_key()
    ```
-   - And put this new key in .env (`APP_SECRET="22...="`)
+   - And put this new key in .env file (`APP_SECRET="22...="`)
  - Note that this software does track usage in a a way that tried to be compliant with GDPR, this means:
     - No personally identifiable information is collected, or any information that could be used to track back to a user or group of users (e.g. user name, computer name, ip address, etc)
  - The information collected is intended to create justification for the time spent working on LBS AF Navigator, for example if 2hours is being saved per week using this tool it may be used as justification that more time should be spent maintaining and upgrading it.
@@ -77,18 +125,16 @@ I ended up settling on Siemens because it has a retro feel to use, and it feels 
 
 ## Building application
 Note: I have three secrets that I don't want to commit anywhere public:
- 1. The Key to access the users credentials
- 2. The Key to access the Azure logs
- 2. The Key to access the Azure Shipping Tool blobs
+1. The Key to access the users credentials
+2. The Key to access the Azure logs
+3. The Key to access the Azure Shipping Tool blobs
 
-These will be stored < TBC >, when building the application these should be put in a folder called `.env` in the root directory.
+These will be stored in Github Secrets, when building the application these should be put in a folder called `.env` in the root directory.
 
-The other file that I haven't committed is the Leica Biosystems Root CA certificate.
-
-Assuming you have access to these:
+Assuming you have access to these follow the following steps:
 
 ### Download from BitBucket
-Link < TBC >
+Link `https://github.com/MarkyXP/artifactory_navigator`
 
 ### Create a python environment
 1. Download Python
