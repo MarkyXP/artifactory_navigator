@@ -15,6 +15,14 @@ pip_system_certs.wrapt_requests.inject_truststore()
 from app.core.config import CONFIG
 from app.services import azure_storage, explorer, login
 
+# ------------------------------------------------------------------
+#  Set App ID
+# ------------------------------------------------------------------
+from ctypes import windll
+app_id = "LBS.ArtifactoryNavigator"
+windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+
+
 app = wx.App(False)
 conn = login.GetAFConnection(app)
 # User cancelled logging in
