@@ -24,6 +24,20 @@ STANDARD_PAGE_SIZES = (
     (148, 210, "A5"),
 )
 
+def _regenerate_name_for_boms(filename : str) -> str:
+    if not filename.lower().startswith("bill-of-materials"):
+        return filename
+    *_, bomno = filename.split("-")
+    return bomno
+        
+
+def _regenerate_name_for_periods(filename : str) -> str:
+    return re.sub(r"[^a-zA-Z0-9\-]+", "_", filename)
+
+def _is_dmr_or_dhfr(file : pathlib.Path) -> bool:
+    doc_no, _, _, _ = get_doc_no(file.name)
+    return len(doc_no) > 0
+
 
 def _is_zip(path: pathlib.Path | str):
     if isinstance(path, pathlib.Path):
@@ -44,7 +58,7 @@ def unzip(src: pathlib.Path | str) -> List[pathlib.Path]:
     return unzipped_files
 
 
-def check_is_docusign_combined_file(src: pathlib.Path | str):
+def check_is_docusign_combined_file(src: pathlib.Path | str) -> List[pathlib.Path]:
     if isinstance(src, str):
         src = pathlib.Path(src)
     if not src.exists():
@@ -54,19 +68,23 @@ def check_is_docusign_combined_file(src: pathlib.Path | str):
     if not src.name.lower().startswith("complete_with_docusign"):
         return
     contents = unzip(src)
-    if len(contents) != 2:
-        return False
     summary_files = [f for f in contents if f.name == "Summary.pdf"]
-    signed_docs = [f for f in contents if f.name != "Summary.pdf"]
-    if len(summary_files) != 1 or len(signed_docs) != 1:
+    not_summary_docs = [f for f in contents if f.name != "Summary.pdf"]
+    if len(summary_files) != 1:
         return False
-    signed_doc = signed_docs[0]
-    signed_doc_renamed_double_underscore = re.sub(r"[^a-zA-Z0-9]", "_", signed_doc.stem)
-    signed_doc_renamed = re.sub(r"\_+", "_", signed_doc_renamed_double_underscore)
-    signed_doc = signed_doc.rename(signed_doc.with_stem(signed_doc_renamed))
-    new_summary_doc = signed_doc.parent / (signed_doc.stem + "_Summary.pdf")
-    summary_files[0].rename(new_summary_doc)
-    return (signed_doc, new_summary_doc)
+    summary_file = summary_files[0]
+    docs_to_upload = []
+    for doc in not_summary_docs:
+        if not _is_dmr_or_dhfr(doc):
+            docs_to_upload.append(doc)
+            continue
+        new_stem_name = _regenerate_name_for_boms(doc.stem)
+        new_stem_name = _regenerate_name_for_periods(new_stem_name)
+        doc = doc.rename(doc.with_stem(new_stem_name))
+        new_summary_doc_name = doc.parent / (doc.stem + "_Summary.pdf")
+        shutil.copy(summary_file, str(new_summary_doc_name))
+        docs_to_upload += [doc, pathlib.Path(new_summary_doc_name)]
+    return docs_to_upload
 
 
 def get_clipboard_file_paths() -> List[pathlib.Path]:
