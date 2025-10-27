@@ -8,7 +8,7 @@ import wx
 from artifactory import ArtifactoryPath
 
 from app.core.config import CONFIG
-from app.core.telemetry import log
+from app.core import telemetry
 from app.gui import explorer_elements as elements
 from app.gui.go_to_cr import CRDialog
 from app.gui.shipping_tool import ShippingToolDialog
@@ -78,6 +78,7 @@ class FileExplorer(wx.Frame):
         self.buttons.GOTO.Bind(wx.EVT_BUTTON, self.start_go_to)
         self.buttons.COPY.Bind(wx.EVT_BUTTON, self.on_copy)
         self.buttons.PASTE.Bind(wx.EVT_BUTTON, self.on_paste)
+        self.buttons.UPLOAD.Bind(wx.EVT_BUTTON, self.on_upload)
         self.buttons.OPEN.Bind(wx.EVT_BUTTON, self.on_open)
         self.buttons.DELETE.Bind(wx.EVT_BUTTON, self.on_delete)
         self.buttons.REVISION.Bind(wx.EVT_BUTTON, self.on_compare_to_revision_item)
@@ -223,7 +224,7 @@ class FileExplorer(wx.Frame):
     def on_copy_as_path(self, _: wx.CommandEvent):
         af_paths = self.get_selected_paths()
         shas = [str(self.current_dir / f.name) for f in af_paths]
-        clipboard_str = ", ".join(shas)
+        clipboard_str = "\n".join(shas)
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
             wx.TheClipboard.Close()
@@ -239,8 +240,12 @@ class FileExplorer(wx.Frame):
 
     def on_copy_as_table(self, _: wx.CommandEvent):
         af_paths = self.get_selected_paths()
-        rows = ["Name\tModified By\tSHA256"]
-        rows += [f"{item.name}\t{item.modified_by}\t{item.sha256}" for item in af_paths]
+        rows = ["File Name\tSize\tModified Date\tDate Updated\tModified By\tSHA256"]
+        rows += [
+            f"{item.name}\t{item.size}\t{item.modified}\t{item.updated}\t{item.modified_by}\t{item.sha256}"
+            for item
+            in af_paths
+        ]
         clipboard_str = "\n".join(rows)
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
@@ -365,7 +370,7 @@ class FileExplorer(wx.Frame):
             file_path_str = self.current_dir.as_posix() + "/" + path.name
             af_file = AF.open(self.conn, file_path_str)
             self._download_file(af_file, open=True)
-            log("File downloaded for preview")
+            telemetry.log("File downloaded for preview")
             return
 
     def on_item_activated(self, event):
@@ -396,7 +401,7 @@ class FileExplorer(wx.Frame):
                 "Info",
                 wx.OK | wx.ICON_INFORMATION,
             )
-        log(f"Files copied to clipboard - {no_files_copied}")
+        telemetry.log(f"Files copied to clipboard - {no_files_copied}")
 
     def on_paste(self, event):
         """Paste files from clipboard to current directory"""
@@ -407,11 +412,31 @@ class FileExplorer(wx.Frame):
             )
             return
         errors = file_handler.upload_formatted_files(files, self.current_dir)
-        log(f"Files uploaded - {len(files)}")
+        telemetry.log(f"Files uploaded - {len(files)}")
         self.load_directory()
         if errors:
             wx.MessageBox(
                 "Errors occurred while copying:\n" + "\n".join(errors),
+                "Error",
+                wx.OK | wx.ICON_ERROR,
+            )
+
+    def on_upload(self, event):
+        openFileDialog = wx.FileDialog(
+            None,
+            message="Choose file(s) to upload to Artifactory",
+            wildcard="All files (*.*)|*.*",
+            style=wx.FLP_OPEN | wx.FLP_FILE_MUST_EXIST | wx.FD_MULTIPLE 
+        )
+        openFileDialog.ShowModal()
+        files = [Path(path) for path in openFileDialog.Paths]
+        openFileDialog.Destroy()
+        errors = file_handler.upload_formatted_files(files, self.current_dir)
+        telemetry.log(f"Files uploaded - {len(files)}")
+        self.load_directory()
+        if errors:
+            wx.MessageBox(
+                "Errors occurred while uploading:\n" + "\n".join(errors),
                 "Error",
                 wx.OK | wx.ICON_ERROR,
             )
@@ -456,7 +481,7 @@ class FileExplorer(wx.Frame):
                 )
             self.load_directory()
             if show_confirmation:
-                log(f"Deleted files - {len(paths)}")
+                telemetry.log(f"Deleted files - {len(paths)}")
 
     def on_compare_to_revision_item(self, event):
         # first_item = self.file_list.GetItem(1, 0).GetText()
@@ -479,7 +504,7 @@ class FileExplorer(wx.Frame):
             return
         if new_label:
             old_af.move(new_af)
-            log("File renamed")
+            telemetry.log("File renamed")
             self.load_directory()
         else:
             event.Veto()
@@ -643,8 +668,13 @@ class FileExplorer(wx.Frame):
 
     def open_cr_handler(self, cr_number: str, selected_type: str):
         folders = AF.find_folders(self.conn, selected_type, cr_number)
-        # If the folder's not found, make it?
-        if not folders:
+        matching_folder = None
+        for folder in folders:
+            folder_no = re.sub("[^0-9]", "", folder.name)
+            if folder_no == cr_number:
+                matching_folder = folder
+        # If the folder's not found, ask to make it
+        if not matching_folder:
             dlg_result = wx.MessageBox(
                 f"Folder not found for {cr_number}.\nWould you like to create it?",
                 "Folder Not Found",
@@ -654,11 +684,7 @@ class FileExplorer(wx.Frame):
                 return
             new_folder = self.conn / selected_type / cr_number
             AF.make_folder(new_folder)
-            # self.create_folder(selected_type, cr_number)
-            # folders = AF.find_folders(self.conn, selected_type, cr_number)
-            folders = [new_folder]
-
-        folder = folders[0]
+            matching_folder = [new_folder]
         self.current_dir = folder
         self.load_directory()
 
@@ -668,6 +694,7 @@ class FileExplorer(wx.Frame):
             f for f in selected_items if hasattr(f, "name") and not f.name == ".."
         ]
         selected_items = [self.current_dir / f.name for f in selected_items]
+        telemetry.log(f"DST - {', '.join([str(item) for item in selected_items])}")
         dlg = ShippingToolDialog(selected_items)
         dlg.ShowModal()
 
@@ -730,5 +757,5 @@ class FileDropTarget(wx.FileDropTarget):
                 wx.OK | wx.ICON_ERROR,
             )
         self.window.load_directory()
-        log(f"Files uploaded - {len(filenames)}")
+        telemetry.log(f"Files uploaded - {len(filenames)}")
         return True

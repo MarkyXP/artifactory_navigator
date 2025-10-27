@@ -9,6 +9,7 @@ dependencies = [
     "azure-storage-blob>=12.26.0",
     "cryptography>=45.0.5",
     "dohq-artifactory>=1.0.1",
+    "keyring>=25.6.0",
     "pip-system-certs>=5.2",
     "python-dotenv>=1.1.1",
     "pywin32>=311",

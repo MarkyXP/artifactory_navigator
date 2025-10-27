@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 
+import keyring
 from cryptography.fernet import Fernet
 
 from app.core.config import CONFIG
@@ -46,29 +47,21 @@ def _get_store() -> dict:
     Loads and decrypts the store with user details.
     Returns an empty dictionary if the store doesn't exist or is corrupted.
     """
-    store_path = CONFIG.STORE_LOCATION_PATH
-    if store_path.exists():
-        with store_path.open() as f:
-            try:
-                encrypted_store = f.read()
-                decrypted_store_json = _fernet.decrypt(encrypted_store.encode())
-                return json.loads(decrypted_store_json)
-            except Exception as _:
-                # The file has been corrupted
-                return {}
-    return {}
+    try:
+        encrypted_store = keyring.get_password("LBS_Artifactory_Navigator", "AF")
+        decrypted_store_json = _fernet.decrypt(encrypted_store.encode())
+        return json.loads(decrypted_store_json)
+    except Exception as _:
+        # The file has been corrupted
+        return {}
 
 
 def _save_store(store: dict):
     """
     Encrypts the store with user details and saves it.
     """
-    store_path = CONFIG.STORE_LOCATION_PATH
     encrypted_store_json = _fernet.encrypt(json.dumps(store).encode()).decode()
-    # Make the folderpath if it doesn't already exist
-    store_path.parent.mkdir(parents=True, exist_ok=True)
-    with store_path.open(mode="w") as f:
-        f.write(encrypted_store_json)
+    keyring.set_password("LBS_Artifactory_Navigator", "AF", encrypted_store_json)
 
 
 def get_username() -> str:

@@ -1,8 +1,8 @@
 from typing import List
 
 import wx
-import wx.grid as gridlib
 
+from app.core import telemetry
 from app.models.af_search_results import AF_Result
 from app.models.revision import ReVision_Response
 from app.services.revision import get_doc_no
@@ -17,9 +17,11 @@ class ReVision_Report_Frame(wx.Frame):
         af_data: List[AF_Result],
     ):
         super(ReVision_Report_Frame, self).__init__(None, title=title, size=(1050, 500))
+        self.title = title
         self.refresh(revision_data, af_data)
 
     def refresh(self, revision_data: List[ReVision_Response], af_data: List[AF_Result]):
+        telemetry.log(f"Revision Report - Generating - {self.title}")
         panel = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
         # File list with drag source support

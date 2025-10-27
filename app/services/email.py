@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
-from textwrap import dedent
+import textwrap
 from typing import List
 
 import win32com.client as win32
 from artifactory import ArtifactoryPath
 
 from app.core.config import CONFIG
+from app.core import telemetry
 
 
 def _af_items_to_html_table(items: List[ArtifactoryPath]):
@@ -22,7 +23,7 @@ def _af_items_to_html_table(items: List[ArtifactoryPath]):
         for item in items
     ]
     rows = "\n        ".join(fmt_items)
-    html = dedent(
+    html = textwrap.dedent(
         f""" \
         <table style="font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#656565; padding-left: 5px; padding-right: 5px;" bgcolor="#f6f6f6" height="80" valign="middle" align="center" width="640">
             <colgroup>
@@ -54,26 +55,41 @@ def generate_dst_email(
     )
 
     # Create an instance of Outlook
-    outlook = win32.Dispatch("outlook.application")
+    try:
+        outlook = win32.Dispatch("outlook.application")
 
-    # Create a new email item
-    mail = outlook.CreateItem(0)  # 0: olMailItem
+        # Create a new email item
+        mail = outlook.CreateItem(0)  # 0: olMailItem
 
-    with open(CONFIG.SHIPPING_TOOL_EMAIL_BODY_LOCATION, "r") as f:
-        email_body: str = f.read()
-    email_body = email_body.replace("$Name", recipient_name)
-    email_body = email_body.replace("$ExpiryTime", expirydate)
-    email_body = email_body.replace("$FileSHATable", _af_items_to_html_table(af_items))
-    email_body = email_body.replace("$FileName", zip_filename)
-    email_body = email_body.replace("$URL", download_link)
-    email_body = email_body.replace("$YEAR", datetime.now().strftime("%Y"))
+        with open(CONFIG.SHIPPING_TOOL_EMAIL_BODY_LOCATION, "r") as f:
+            email_body: str = f.read()
+        email_body = email_body.replace("$Name", recipient_name)
+        email_body = email_body.replace("$ExpiryTime", expirydate)
+        email_body = email_body.replace("$FileSHATable", _af_items_to_html_table(af_items))
+        email_body = email_body.replace("$FileName", zip_filename)
+        email_body = email_body.replace("$URL", download_link)
+        email_body = email_body.replace("$YEAR", datetime.now().strftime("%Y"))
 
-    # Set email properties
-    mail.To = recipient_email  # Replace with the recipient's email address
-    mail.Subject = f"File download from Leica BioSystems for {recipient_company}"
-    mail.HTMLBody = email_body
-    mail.CC = "lbsmel.hw-engineeringrelease@leicabiosystems.com"
-    # mail._oleobj_.Invoke(*(64209, 0, 8, 0, "LBSMEL.HW-EngineeringRelease@leicabiosystems.com"))
-
-    # Display the email
-    mail.Display()
+        # Set email properties
+        mail.To = recipient_email  # Replace with the recipient's email address
+        mail.Subject = f"File download from Leica BioSystems for {recipient_company}"
+        mail.HTMLBody = email_body
+        for account in outlook.Session.Accounts:
+            if account.DisplayName == "lbsmel.hw-engineeringrelease@leicabiosystems.com":
+                mail._oleobj_.Invoke(*(64209, 0, 8, 0, account))  # Property 64209 is "SendUsingAccount"
+                break
+        else:
+            mail.CC = "lbsmel.hw-engineeringrelease@leicabiosystems.com"
+        # Display the email
+        mail.Display()
+    except Exception as e:
+        telemetry.log("ERROR:\t"+e)
+        import wx
+        app = wx.App(False)
+        wx.MessageBox(textwrap.dedent(f"""\
+                Error generating the DST email: {e}
+            """).strip(),
+            'Info',
+            wx.OK | wx.ICON_WARNING
+        )
+        

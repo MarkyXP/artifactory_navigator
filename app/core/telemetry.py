@@ -1,3 +1,4 @@
+import os
 import uuid
 import warnings
 
@@ -53,7 +54,9 @@ def log(msg: str):
                 {
                     "id": _session_id + "_" + str(_msg_count),
                     "src": "LBS_Artifactory_Navigator",
+                    "app_version" : CONFIG.VERSION,
                     "session_id": _session_id,
+                    "user" : os.getlogin(),
                     "msg": msg,
                 }
             )
