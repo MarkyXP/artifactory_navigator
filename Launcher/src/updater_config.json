@@ -1,6 +1,0 @@
-{
-    "exe_filename" : "artifactory_navigator.exe",
-    "launch_flags" : "--launch",
-    "master_path_version_str": "C:\\Python\\artifactory_navigator\\pyproject.toml",
-    "local_path_version_str": "%LocalAppData%\\af_nav\\pyproject.toml"
-}

@@ -14,7 +14,7 @@ def check_for_updates():
         if CONFIG.VERSION == released_version:
             return
         app = wx.App(False)
-        wx.MessageBox(textwrap.dedent(f"""\
+        response = wx.MessageBox(textwrap.dedent(f"""\
                 LBS Artifactory Navigator has been updated to version {released_version}.
                 Please consider updating to the latest release.
             """).strip(),

@@ -8,3 +8,4 @@ output*
 .python-version
 build*
 dist*
+.ruff_cache

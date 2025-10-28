@@ -23,9 +23,9 @@ check_new_version.check_for_updates()
 # ------------------------------------------------------------------
 #  Set App ID
 # ------------------------------------------------------------------
-from ctypes import windll
-app_id = "LBS.ArtifactoryNavigator"
-windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+# from ctypes import windll
+# app_id = "LBS.ArtifactoryNavigator"
+# windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
 
 
 app = wx.App(False)
