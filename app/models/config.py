@@ -17,6 +17,7 @@ class Config:
     AZURE_COSMOS_CONTAINER_ID: str
     AZURE_DST_SETTINGS: str
     STORE_LOCATION: str
+    RELEASE_LOCATION : str
     STORE_LOCATION_PATH: Path | None = None
     STORE_TEMPFILES_PATH: Path | None = None
     ICON_LOCATION: str | None = None

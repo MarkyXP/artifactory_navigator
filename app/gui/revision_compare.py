@@ -139,4 +139,4 @@ class ReVision_Report_Frame(wx.Frame):
                 )
                 no_items_shown += 1
         # Change the height of the window based on how many items are shown
-        self.SetSize(wx.Size(1250, 19*(no_items_shown+1)+80))
+        self.SetSize(wx.Size(1250, 19*(no_items_shown+3)+80))
