@@ -40,6 +40,9 @@ def set_auth(username: str, pw: str):
 
 @run_in_background
 def log(msg: str):
+    """
+    Kicks off a background thread to upload the message to the Azure telemetry service
+    """
     global _msg_count, _disable_logging, _auth_acquired
     if _disable_logging:
         return
