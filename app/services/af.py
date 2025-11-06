@@ -67,10 +67,10 @@ def check_has_write_permissions(path: ArtifactoryPath) -> bool:
     repo_name = (list(path.parts) + [""])[1]
     if not repos_with_write_permissions:
         resp = path.session.get(
-            url="https://aumel-artifactory.leicabio.com/ui/api/v1/ui/repodata?deploy=true"
+            url=CONFIG.AF_BASE_URL + "ui/api/v1/ui/repodata?deploy=true"
         )
         resp_dict = resp.json()
-        if "repoTypesList" in resp_dict:
+        if isinstance(resp_dict, dict) and "repoTypesList" in resp_dict:
             repos_with_write_permissions = [
                 repo["repoKey"]
                 for repo in resp_dict["repoTypesList"]
