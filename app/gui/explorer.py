@@ -224,8 +224,12 @@ class FileExplorer(wx.Frame):
 
     def on_copy_as_path(self, _: wx.CommandEvent):
         af_paths = self.get_selected_paths()
-        shas = [str(self.current_dir / f.name) for f in af_paths]
-        clipboard_str = "\n".join(shas)
+        str_paths = [
+            str(self.current_dir / f.name)
+                .replace(CONFIG.AF_URL, CONFIG.AF_PRETTY_URL)
+            for f in af_paths
+        ]
+        clipboard_str = "\n".join(str_paths)
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(wx.TextDataObject(clipboard_str))
             wx.TheClipboard.Close()

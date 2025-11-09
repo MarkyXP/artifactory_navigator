@@ -27,6 +27,8 @@ def _get_azure_details():
     _session = AF_SESSION.session
     response = _session.get(CONFIG.AZURE_DST_SETTINGS)
     jresp = response.json()
+    if response.status_code != 200:
+        return 
     STORAGE_ACCOUNT_NAME = jresp["Azure"]["storageAccountName"]
     STORAGE_ACCOUNT_CONTAINER = jresp["Azure"]["storageContainerName"]
     _encrypted_key = jresp["Azure"]["storageAccountKey"]

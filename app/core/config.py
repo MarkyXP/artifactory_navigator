@@ -23,22 +23,11 @@ def resource_path(relative_path):
 load_dotenv(dotenv_path=resource_path(".env"))
 
 # Load the config file
-possible_config_locations = [
-    pathlib.Path("config.json"),
-    pathlib.Path("app/core/config.json"),
-]
-config_found = False
-for config_location in possible_config_locations:
-    if config_location.exists():
-        config = config_location.read_text()
-        try:
-            config_dict: dict = json.loads(config)
-            config_found = True
-            break
-        except Exception as _:
-            raise "Error reading config file - Ensure the json is not corrupted"
-if not config_found:
-    raise "Error - Could not find config.json file"
+with open(os.getenv("CONFIG_PATH", "config.json"), "r") as config:
+    config_dict: dict = json.loads(config.read())
+    for route in ["AF_URL", "AF_PRETTY_URL", "AZURE_DST_SETTINGS"]:
+        config_dict[route] = config_dict["AF_BASE_URL"] + config_dict[route]
+
 
 ICON_FOLDER_PATH = resource_path("Assets/Icons")
 

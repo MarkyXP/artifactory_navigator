@@ -9,6 +9,7 @@ class Config:
     APP_ICON_PATH: str
     APP_SECRET: str
     VERSION: str
+    AF_BASE_URL : str
     AF_URL: str
     AF_PRETTY_URL: str
     AZURE_COSMOS_ENDPOINT: str
