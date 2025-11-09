@@ -77,6 +77,7 @@ class FileExplorer(wx.Frame):
         self.buttons.SEARCH.Bind(wx.EVT_BUTTON, self.on_search_toggle)
         self.buttons.GOTO.Bind(wx.EVT_BUTTON, self.start_go_to)
         self.buttons.COPY.Bind(wx.EVT_BUTTON, self.on_copy)
+        self.buttons.DOWNLOAD.Bind(wx.EVT_BUTTON, self.on_download)
         self.buttons.PASTE.Bind(wx.EVT_BUTTON, self.on_paste)
         self.buttons.UPLOAD.Bind(wx.EVT_BUTTON, self.on_upload)
         self.buttons.OPEN.Bind(wx.EVT_BUTTON, self.on_open)
@@ -310,7 +311,6 @@ class FileExplorer(wx.Frame):
 
     def on_up(self, event):
         """Navigate to parent directory"""
-        # parent_dir = os.path.dirname(self.current_dir)
         parent_dir = self.current_dir.parent
         if parent_dir != self.current_dir:  # Not at root
             current_folder_name = self.current_dir.name
@@ -390,18 +390,46 @@ class FileExplorer(wx.Frame):
         local_paths = [
             self._download_file(self.current_dir / path.name) for path in af_paths
         ]
-        local_path_strings = ", ".join([f"'{f.as_posix()}'" for f in local_paths])
-        file_names = ", ".join([f.name for f in local_paths])
+        file_names = "\r\n".join([f"- {f.name}" for f in local_paths])
         no_files_copied = len(local_paths)
-        command = f"powershell Set-Clipboard -LiteralPath {local_path_strings}"
-        os.system(command)
+        file_handler.add_locations_to_clipboard(local_paths)
         if show_feedback:
             wx.MessageBox(
-                f"Copied {no_files_copied} items: {file_names}",
+                f"Copied {no_files_copied} items:\n{file_names}",
                 "Info",
                 wx.OK | wx.ICON_INFORMATION,
             )
         telemetry.log(f"Files copied to clipboard - {no_files_copied}")
+
+    def on_download(self, event):
+        openDirDialog = wx.DirDialog(
+            None,
+            message="Choose file(s) to upload to Artifactory",
+            style=wx.FLP_OPEN | wx.FLP_FILE_MUST_EXIST | wx.FD_MULTIPLE 
+        )
+        openDirDialog.ShowModal()
+        if not openDirDialog.Paths:
+            return
+        output_path = Path(openDirDialog.Paths[0])
+        openDirDialog.Destroy()
+        files_to_download = self.get_selected_paths()
+        local_paths = [
+            self._download_file(
+                file_conn = self.current_dir / path.name,
+                open = False,
+                output_path = output_path
+            ) for path in files_to_download
+        ]
+        telemetry.log(f"Downloaded - {len(local_paths)}")
+        wx.MessageBox(
+            f"Copied {len(local_paths)} items:\n{
+                '\r\n'.join([
+                    f' - {item.name}' for item in local_paths
+                ])
+            }",
+            "Info",
+            wx.OK | wx.ICON_INFORMATION,
+        )
 
     def on_paste(self, event):
         """Paste files from clipboard to current directory"""
@@ -455,7 +483,7 @@ class FileExplorer(wx.Frame):
                 )
             return
 
-        names = ", ".join([p.name for p in paths])
+        names = "\r\n".join([f"- {p.name}" for p in paths])
         if show_confirmation:
             confirm = wx.MessageBox(
                 f"Are you sure you want to delete {len(paths)} items?\n{names}",
@@ -551,7 +579,6 @@ class FileExplorer(wx.Frame):
             if item_text == "..":
                 selected_paths.append("..")
             else:
-                # selected_paths.append(os.path.join(self.current_dir, item_text))
                 selected_paths.append(self.items[index + self.selecting_offset])
             index = self.file_list.GetNextSelected(index)
 

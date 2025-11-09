@@ -212,3 +212,18 @@ def get_file_parameters(path: pathlib.Path) -> dict:
     if path.name.upper().endswith(".ZIP"):
         parameters["is_zip"] = "True"
     return parameters
+
+def add_locations_to_clipboard(paths : List[pathlib.Path]):
+    """
+    Takes a list of local paths and adds them to the windows clipboard, so they can be pasted
+    """
+    local_path_strings = ", ".join([f'"{f.as_posix().replace("/","\\")}"' for f in paths])
+    ps_command = f'Set-Clipboard -LiteralPath {local_path_strings}'
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-Command", ps_command],
+        capture_output=True,
+        text=True,
+        creationflags=subprocess.CREATE_NO_WINDOW  # Windows-only flag to suppress window
+    )
+    if result.returncode != 0:
+        print("Error setting clipboard:", result.stderr)
