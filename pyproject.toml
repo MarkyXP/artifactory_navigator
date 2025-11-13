@@ -3,7 +3,7 @@ name = "artifactory-navigator"
 version = "v1.0.20251113"
 description = "The Windows native Artifactory Navigator"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13.0, <3.14"
 dependencies = [
     "azure-cosmos>=4.9.0",
     "azure-storage-blob>=12.26.0",
