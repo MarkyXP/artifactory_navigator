@@ -76,8 +76,11 @@ def make_search(
     hbox = wx.BoxSizer(wx.HORIZONTAL)
     search_label = wx.StaticText(parent, label="Search:")
     search_input = wx.TextCtrl(parent)
+    ignore_summary_check = wx.CheckBox(parent, label="Hide Summary Files")
+    ignore_summary_check.SetValue(True)
     hbox.Add(search_label, 0, wx.ALIGN_CENTER | wx.ALL, 5)
     hbox.Add(search_input, 1, wx.EXPAND | wx.ALL, 5)
+    hbox.Add(ignore_summary_check, 0, wx.ALIGN_CENTER | wx.ALL, 5)
     sizer.Add(hbox, 0, wx.EXPAND | wx.ALL, 5)
     # Make a search results section
     search_results = wx.ListCtrl(parent, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
@@ -92,4 +95,4 @@ def make_search(
 
     sizer.Add(search_results, 1, wx.EXPAND | wx.ALL, 5)
 
-    return search_input, search_results
+    return search_input, ignore_summary_check, search_results

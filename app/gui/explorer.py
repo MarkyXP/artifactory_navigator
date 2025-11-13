@@ -51,7 +51,7 @@ class FileExplorer(wx.Frame):
         self.search_panel = wx.Panel(self.splitter)
         search_sizer = wx.BoxSizer(wx.VERTICAL)
         # collapsible search bar
-        self.search_input, self.search_results = elements.make_search(
+        self.search_input, self.search_ignore_summary, self.search_results = elements.make_search(
             self.search_panel, search_sizer
         )
         # search text box inside the collapsible pane
@@ -95,6 +95,7 @@ class FileExplorer(wx.Frame):
         self.file_list.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         # Bindings - Search
         self.search_input.Bind(wx.EVT_KEY_UP, self.on_search_key_down)
+        self.search_ignore_summary.Bind(wx.EVT_CHECKBOX, self.on_search_key_down)
         self.search_results.Bind(
             wx.EVT_LIST_ITEM_ACTIVATED, self.on_search_item_activated
         )
@@ -671,14 +672,21 @@ class FileExplorer(wx.Frame):
         self.search_results.DeleteAllItems()
         query = str(self.search_input.Value).strip()
         numbers_only_query = re.sub("[^0-9]", "", query)
-        key_code = event.GetKeyCode()
-        is_enter = key_code == wx.WXK_NUMPAD_ENTER or key_code == wx.WXK_RETURN
+        if event.EventType == wx.EVT_KEY_UP:
+            key_code = event.GetKeyCode()
+            is_enter = key_code == wx.WXK_NUMPAD_ENTER or key_code == wx.WXK_RETURN
+        else:
+            is_enter = False
         is_enough = len(numbers_only_query) > 3
         if is_enter or is_enough:
             limit = 50
             if is_enter:
                 limit = -1
             items = AF.find(self.conn, query, limit=limit)
+            # Drop the summary files
+            if self.search_ignore_summary.Value:
+                items = [i for i in items if not "summary" in i["name"].lower()]
+            # Show the items
             for i, item in enumerate(items):
                 path = item["repo"] + "/" + item["path"]
                 index = self.search_results.InsertItem(i + 1, path)
