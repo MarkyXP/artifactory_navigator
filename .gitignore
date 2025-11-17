@@ -10,3 +10,5 @@ build*
 dist*
 .ruff_cache
 config.dev.json
+
+.Notebooks

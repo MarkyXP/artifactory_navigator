@@ -164,9 +164,9 @@ class Compare_Report():
                             document_number = doc_no,
                             revision_location = rv_item.revision_location,
                             revision_rev = rv_item.revision_rev,
-                            revision_title = rv_item.revision_title,
-                            artifactory_title = "Summary",
-                            artifactory_file_extension= "PDF",
+                            revision_title = rv_item.revision_title + " - Summary",
+                            artifactory_title = "",
+                            artifactory_file_extension= "",
                             status = ReportItemStatus.BAD,
                         )
                         missing_summary_report.bg_colour = bg_colours.get(missing_summary_report)
