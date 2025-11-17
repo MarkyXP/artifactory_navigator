@@ -73,6 +73,15 @@ class Compare_Report():
                 artifactory_file_extension=extension.strip()
             )
             af_doc_lookup[docno].append(report_item)
+            pass
+            af_doc_lookup[docno].sort(
+                key=lambda item: (
+                    item.artifactory_file_extension == "PDF", # Priority 1: Put the PDF files at the end
+                    item.artifactory_file_extension,          # Priority 2: Sort by extension, then
+                    item.artifactory_title,                   # Priority 3: Sort by file name
+                )
+            )
+            pass
         return af_doc_lookup
     
     def get_revision_doc_lookup(self) -> Dict[str, ReportItem]:
@@ -133,13 +142,15 @@ class Compare_Report():
             # If there are items in AF for the document number
             else:
                 for report_item in af_doc_lookup[doc_no]:
+                    rv_title = rv_item.revision_title
                     if "summary" in report_item.artifactory_title.lower():
                         summary_found = True
+                        rv_title +=  " - Summary"
                     elif report_item.artifactory_file_extension == "PDF":
                         signoff_found = True
                     report_item.revision_location = rv_item.revision_location
                     report_item.revision_rev = rv_item.revision_rev
-                    report_item.revision_title = rv_item.revision_title
+                    report_item.revision_title = rv_title
                     report_item.should_be_in_af = rv_item.should_be_in_af or False
                     report_item.status = self.get_status(report_item)
                     report_item.bg_colour = bg_colours.get(report_item)

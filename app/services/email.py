@@ -83,12 +83,12 @@ def generate_dst_email(
         # Display the email
         mail.Display()
     except Exception as e:
-        telemetry.log("ERROR:\t"+e)
+        import traceback
         import wx
-        app = wx.App(False)
-        wx.MessageBox(textwrap.dedent(f"""\
-                Error generating the DST email: {e}
-            """).strip(),
+        telemetry.log("ERROR:\t"+traceback.format_exc())
+        #app = wx.App(False)
+        wx.MessageBox(
+            f"Error generating the DST email: {e}",
             'Info',
             wx.OK | wx.ICON_WARNING
         )
