@@ -57,6 +57,29 @@ def unzip(src: pathlib.Path | str) -> List[pathlib.Path]:
     unzipped_files = [f for f in o_path.glob("*")]
     return unzipped_files
 
+def extract_envelope_id(summary_file : pathlib.Path) -> str | None:
+    with summary_file.open("rb") as f:
+        content = f.read().decode(errors="ignore")
+    match = re.search(
+        r"envelopeid[_\-]?([a-zA-Z0-9]+)",
+        content,
+        re.IGNORECASE
+    )
+    if match:
+        envelope_id_raw = match.group(1)
+        if len(envelope_id_raw) != 32:
+            return None
+        # Split the envelope ID into chunks of
+        # 8-4-4-4-12 characters
+        chunks = [
+            envelope_id_raw[0:8],
+            envelope_id_raw[8:12],
+            envelope_id_raw[12:16],
+            envelope_id_raw[16:20],
+            envelope_id_raw[20:32],
+        ]
+        return "-".join(chunks)
+    return None
 
 def check_is_docusign_combined_file(src: pathlib.Path | str) -> List[pathlib.Path]:
     if isinstance(src, str):
@@ -73,7 +96,12 @@ def check_is_docusign_combined_file(src: pathlib.Path | str) -> List[pathlib.Pat
     if len(summary_files) != 1:
         return False
     summary_file = summary_files[0]
-    docs_to_upload = []
+    envelope_id = extract_envelope_id(summary_file)
+    if not envelope_id:
+        return False
+    new_summ_path = summary_file.parent / f"DocuSign_{envelope_id}_Summary.pdf"
+    summary_file.rename(new_summ_path)
+    docs_to_upload = [new_summ_path]
     for doc in not_summary_docs:
         if not _is_dmr_or_dhfr(doc):
             docs_to_upload.append(doc)
@@ -81,9 +109,10 @@ def check_is_docusign_combined_file(src: pathlib.Path | str) -> List[pathlib.Pat
         new_stem_name = _regenerate_name_for_boms(doc.stem)
         new_stem_name = _regenerate_name_for_periods(new_stem_name)
         doc = doc.rename(doc.with_stem(new_stem_name))
-        new_summary_doc_name = doc.parent / (doc.stem + "_Summary.pdf")
-        shutil.copy(summary_file, str(new_summary_doc_name))
-        docs_to_upload += [doc, pathlib.Path(new_summary_doc_name)]
+        #new_summary_doc_name = doc.parent / (doc.stem + "_Summary.pdf")
+        #shutil.copy(summary_file, str(new_summary_doc_name))
+        #docs_to_upload += [doc, pathlib.Path(new_summary_doc_name)]
+        docs_to_upload.append(doc)
     return docs_to_upload
 
 

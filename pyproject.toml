@@ -1,6 +1,6 @@
 [project]
 name = "artifactory-navigator"
-version = "v1.0.20251113"
+version = "v1.1.20260114"
 description = "The Windows native Artifactory Navigator"
 readme = "README.md"
 requires-python = ">=3.13.0, <3.14"
@@ -10,6 +10,7 @@ dependencies = [
     "cryptography>=45.0.5",
     "dohq-artifactory>=1.0.1",
     "keyring>=25.6.0",
+    "msal>=1.34.0",
     "pip-system-certs>=5.2",
     "python-dotenv>=1.1.1",
     "pywin32>=311",
