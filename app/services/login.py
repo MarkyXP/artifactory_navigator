@@ -27,7 +27,7 @@ def _test_af_creds(uname: str, pw: str) -> ArtifactoryPath | None:
             msg = "Error: Could not connect to Artifactory"
         elif "Bad credentials" in e.args[0]:
             msg = "Invalid username or password"
-        return msg
+        return None
     # Credentials were fine
     return conn
 

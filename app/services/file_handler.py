@@ -44,6 +44,15 @@ def _is_zip(path: pathlib.Path | str):
         path = path.as_posix()
     return path.lower().endswith(".zip")
 
+def _is_pdf(path: pathlib.Path | str):
+    if isinstance(path, pathlib.Path):
+        path = path.as_posix()
+    return path.lower().endswith(".pdf")
+
+def _is_complete_w_ds(path: pathlib.Path | str):
+    if isinstance(path, str):
+        path = pathlib.Path(path)
+    return path.name.lower().startswith("complete_with_docusign")
 
 def unzip(src: pathlib.Path | str) -> List[pathlib.Path]:
     if isinstance(src, str):
@@ -81,24 +90,27 @@ def extract_envelope_id(summary_file : pathlib.Path) -> str | None:
         return "-".join(chunks)
     return None
 
-def check_is_docusign_combined_file(src: pathlib.Path | str) -> List[pathlib.Path]:
+def separate_docusign_combined_file(src: pathlib.Path | str) -> List[pathlib.Path]:
     if isinstance(src, str):
         src = pathlib.Path(src)
     if not src.exists():
-        return False
-    if not _is_zip(src):
-        return
-    if not src.name.lower().startswith("complete_with_docusign"):
-        return
+        return []
+    if _is_pdf(src) and _is_complete_w_ds(src):
+        # Rename to strip complete_with_docusign
+        new_name = re.sub(r"Complete_with_Docusign_*", "", src.name, flags=re.IGNORECASE)
+        src = src.rename(src.with_name(new_name))
+        return [src]
+    if not (_is_zip(src) or _is_complete_w_ds(src)):
+        return [src]
     contents = unzip(src)
     summary_files = [f for f in contents if f.name == "Summary.pdf"]
     not_summary_docs = [f for f in contents if f.name != "Summary.pdf"]
     if len(summary_files) != 1:
-        return False
+        return [src]
     summary_file = summary_files[0]
     envelope_id = extract_envelope_id(summary_file)
     if not envelope_id:
-        return False
+        return [src]
     new_summ_path = summary_file.parent / f"DocuSign_{envelope_id}_Summary.pdf"
     summary_file.rename(new_summ_path)
     docs_to_upload = [new_summ_path]
@@ -140,12 +152,9 @@ def upload_formatted_files(
     errors = []
     for filepath in files:
         try:
-            is_summary = check_is_docusign_combined_file(filepath)
-            if is_summary:
-                for file in is_summary:
-                    deploy_file_w_params(dest_folder, file)
-            else:
-                deploy_file_w_params(dest_folder, filepath)
+            split_files = separate_docusign_combined_file(filepath)
+            for file in split_files:
+                deploy_file_w_params(dest_folder, file)
         except Exception as e:
             errors.append(f"{filepath.name}: {str(e)}")
     return errors

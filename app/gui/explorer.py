@@ -723,8 +723,8 @@ class FileExplorer(wx.Frame):
                 return
             new_folder = self.conn / selected_type / cr_number
             AF.make_folder(new_folder)
-            matching_folder = [new_folder]
-        self.current_dir = folder
+            matching_folder = new_folder
+        self.current_dir = matching_folder
         self.load_directory()
 
     def on_shipping_tool(self, *_):
