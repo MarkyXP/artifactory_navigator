@@ -90,6 +90,7 @@ class FileExplorer(wx.Frame):
         self.file_list.Bind(wx.EVT_LIST_BEGIN_DRAG, self.on_begin_drag)
         self.file_list.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
         self.file_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_item_activated)
+        self.file_list.Bind(wx.EVT_LIST_COL_CLICK, self.on_column_sort)
         self.Bind(wx.EVT_LIST_BEGIN_LABEL_EDIT, self.on_start_rename)
         self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.on_end_rename)
         self.file_list.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
@@ -381,6 +382,11 @@ class FileExplorer(wx.Frame):
     def on_item_activated(self, event):
         """Handle double-click on item"""
         self.on_open(event)
+    
+    def on_column_sort(self, event):
+        """Handle clicking on the column sort"""
+        column_index = event.Column # 0-based index of the column
+        pass
 
     def on_copy(self, event, show_feedback=True):
         """Copy selected files to clipboard"""
