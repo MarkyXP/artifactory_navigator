@@ -90,6 +90,7 @@ class FileExplorer(wx.Frame):
         self.file_list.Bind(wx.EVT_LIST_BEGIN_DRAG, self.on_begin_drag)
         self.file_list.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
         self.file_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_item_activated)
+        self.file_list.Bind(wx.EVT_LIST_COL_CLICK, self.on_column_sort)
         self.Bind(wx.EVT_LIST_BEGIN_LABEL_EDIT, self.on_start_rename)
         self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.on_end_rename)
         self.file_list.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
@@ -124,7 +125,6 @@ class FileExplorer(wx.Frame):
                 file names
 
         """
-        self.file_list.DeleteAllItems()
         try:
             curr_foldername = (
                 "/" + self.current_dir.repo + self.current_dir.path_in_repo
@@ -143,8 +143,17 @@ class FileExplorer(wx.Frame):
                 for repo in repo_list
             ]
             self.selecting_offset = 0
-        pass
         self.items.sort(key=lambda f: f.type, reverse=True)
+        self.render_filelist(files_to_highlight)
+        # Update the navbar
+        self.update_navbar()
+        # Add the back queue
+        if add_to_back_queue:
+            self.path_backward_stack.append(self.current_dir)
+    
+    def render_filelist(self, files_to_highlight : list[str] = ()):
+        # Clear the files
+        self.file_list.DeleteAllItems()
         # Add parent directory entry
         parent_dir = self.current_dir.parent
         if parent_dir.as_posix() != self.current_dir.as_posix():  # Not at root
@@ -184,11 +193,6 @@ class FileExplorer(wx.Frame):
             self.file_list.Select(i)
             self.file_list.Focus(i)
             self.file_list.EnsureVisible(i)
-        # Update the navbar
-        self.update_navbar()
-        # Add the back queue
-        if add_to_back_queue:
-            self.path_backward_stack.append(self.current_dir)
         pass
 
     def on_context_menu(self, event):
@@ -381,6 +385,27 @@ class FileExplorer(wx.Frame):
     def on_item_activated(self, event):
         """Handle double-click on item"""
         self.on_open(event)
+    
+    def on_column_sort(self, event):
+        """Handle clicking on the column sort"""
+        af_paths = self.get_selected_paths()
+        column_index = event.Column # 0-based index of the column
+        match column_index:
+            case 0: # Name column
+                self.items.sort(key = lambda item: item.name)
+            case 1: # Type column (file / dir)
+                self.items.sort(key = lambda item: item.sha256 == None)
+            case 2: # Size column
+                self.items.sort(key = lambda item: item.size)
+            case 3: # Date Modifed column
+                self.items.sort(key = lambda item: item.modified)
+            case 4: # Date Created column
+                self.items.sort(key = lambda item: item.updated)
+            case 5: # Deployed by column
+                self.items.sort(key = lambda item: item.modified_by or item.created_by or "")
+            case 6: # SHA column
+                self.items.sort(key = lambda item: item.sha256)
+        self.render_filelist(af_paths)
 
     def on_copy(self, event, show_feedback=True):
         """Copy selected files to clipboard"""
