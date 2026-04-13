@@ -27,14 +27,23 @@ from ctypes import windll
 app_id = "65453D83-C0FC-46A8-BA56-75DAB289695F"
 windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
 
-
+# ------------------------------------------------------------------
+#  Set App ID
+# ------------------------------------------------------------------
 app = wx.App(False)
+
+# ------------------------------------------------------------------
+#  Login (or Auto-login)
+# ------------------------------------------------------------------
 conn = login.GetAFConnection(app)
 # User cancelled logging in
 if not conn:
     import sys
-
     sys.exit()
+    
+# ------------------------------------------------------------------
+#  Run the main app
+# ------------------------------------------------------------------
 try:
     # Start the background job to get DST config
     azure_storage.AF_SESSION = conn

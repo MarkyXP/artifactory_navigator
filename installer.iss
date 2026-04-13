@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "LBS Artifactory Navigator"
-#define MyAppVersion "v1.1.20260114"
+#define MyAppVersion "v1.1.20260413"
 #define MyAppPublisher "Leica Biosystems"
 #define MyAppExeName "LBSArtifactoryNavigator.exe"
 
@@ -46,7 +46,6 @@ Source: "C:\Python\artifactory_navigator\dist\{#MyAppExeName}"; DestDir: "{app}"
 ; NOTE: Config doesn't ignore version - Keep old version
 Source: "C:\Python\artifactory_navigator\dist\config.json"; DestDir: "{app}";
 Source: "C:\Python\artifactory_navigator\dist\DSTFile"; DestDir: "{app}"; Flags: ignoreversion
-; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

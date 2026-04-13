@@ -38,7 +38,6 @@ def _is_dmr_or_dhfr(file : pathlib.Path) -> bool:
     doc_no, _, _, _ = get_doc_no(file.name)
     return len(doc_no) > 0
 
-
 def _is_zip(path: pathlib.Path | str):
     if isinstance(path, pathlib.Path):
         path = path.as_posix()
@@ -108,23 +107,31 @@ def separate_docusign_combined_file(src: pathlib.Path | str) -> List[pathlib.Pat
     if len(summary_files) != 1:
         return [src]
     summary_file = summary_files[0]
-    envelope_id = extract_envelope_id(summary_file)
-    if not envelope_id:
-        return [src]
-    new_summ_path = summary_file.parent / f"DocuSign_{envelope_id}_Summary.pdf"
-    summary_file.rename(new_summ_path)
-    docs_to_upload = [new_summ_path]
+    """Generate the Docusign_{envelope_id}_Summary.pdf file"""
+    """ - Note - we are not following this process on P5, so I'm just commenting it out to keep that project going"""
+    """ - Rini/QA are discussing whether we want to keep this, or revert the QMS"""
+    """ - Maybe I should make a config for this?"""
+    #envelope_id = extract_envelope_id(summary_file)
+    #if not envelope_id:
+    #    return [src]
+    # new_summ_path = summary_file.parent / f"DocuSign_{envelope_id}_Summary.pdf"
+    # summary_file.rename(new_summ_path)
+    # docs_to_upload = [new_summ_path]
+    docs_to_upload = []
     for doc in not_summary_docs:
+        """Skip non-DMR items"""
         if not _is_dmr_or_dhfr(doc):
             docs_to_upload.append(doc)
             continue
+        """Fix the naming of the DMR items"""
         new_stem_name = _regenerate_name_for_boms(doc.stem)
         new_stem_name = _regenerate_name_for_periods(new_stem_name)
         doc = doc.rename(doc.with_stem(new_stem_name))
-        #new_summary_doc_name = doc.parent / (doc.stem + "_Summary.pdf")
-        #shutil.copy(summary_file, str(new_summary_doc_name))
-        #docs_to_upload += [doc, pathlib.Path(new_summary_doc_name)]
-        docs_to_upload.append(doc)
+        """Generate the summary file for each DMR item"""
+        new_summary_doc_name = doc.parent / (doc.stem + "_Summary.pdf")
+        shutil.copy(summary_file, str(new_summary_doc_name))
+        docs_to_upload += [doc, pathlib.Path(new_summary_doc_name)]
+        # docs_to_upload.append(doc)
     return docs_to_upload
 
 
