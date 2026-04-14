@@ -144,6 +144,7 @@ class FileExplorer(wx.Frame):
             ]
             self.selecting_offset = 0
         self.items.sort(key=lambda f: f.type, reverse=True)
+        self.last_sorted_col = 0
         self.render_filelist(files_to_highlight)
         # Update the navbar
         self.update_navbar()
@@ -390,21 +391,26 @@ class FileExplorer(wx.Frame):
         """Handle clicking on the column sort"""
         af_paths = self.get_selected_paths()
         column_index = event.Column # 0-based index of the column
+        is_reversed = column_index == self.last_sorted_col
         match column_index:
             case 0: # Name column
-                self.items.sort(key = lambda item: item.name)
+                self.items.sort(key = lambda item: item.name, reverse = is_reversed)
             case 1: # Type column (file / dir)
-                self.items.sort(key = lambda item: item.sha256 == None)
+                self.items.sort(key = lambda item: item.sha256 == None, reverse = is_reversed)
             case 2: # Size column
-                self.items.sort(key = lambda item: item.size)
+                self.items.sort(key = lambda item: item.size, reverse = is_reversed)
             case 3: # Date Modifed column
-                self.items.sort(key = lambda item: item.modified)
+                self.items.sort(key = lambda item: item.modified, reverse = is_reversed)
             case 4: # Date Created column
-                self.items.sort(key = lambda item: item.updated)
+                self.items.sort(key = lambda item: item.updated, reverse = is_reversed)
             case 5: # Deployed by column
-                self.items.sort(key = lambda item: item.modified_by or item.created_by or "")
+                self.items.sort(key = lambda item: item.modified_by or item.created_by or "", reverse = is_reversed)
             case 6: # SHA column
-                self.items.sort(key = lambda item: item.sha256)
+                self.items.sort(key = lambda item: item.sha256, reverse = is_reversed)
+        if is_reversed:
+            self.last_sorted_col = -1
+        else:
+            self.last_sorted_col = column_index
         self.render_filelist(af_paths)
 
     def on_copy(self, event, show_feedback=True):
