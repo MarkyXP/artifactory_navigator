@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "LBS Artifactory Navigator"
-#define MyAppVersion "v1.1.20260413"
+#define MyAppVersion "v1.2.20260414"
 #define MyAppPublisher "Leica Biosystems"
 #define MyAppExeName "LBSArtifactoryNavigator.exe"
 
