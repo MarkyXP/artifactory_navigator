@@ -51,8 +51,8 @@ class FileExplorer(wx.Frame):
         self.search_panel = wx.Panel(self.splitter)
         search_sizer = wx.BoxSizer(wx.VERTICAL)
         # collapsible search bar
-        self.search_input, self.search_ignore_summary, self.search_results = elements.make_search(
-            self.search_panel, search_sizer
+        self.search_input, self.search_ignore_summary, self.search_results = (
+            elements.make_search(self.search_panel, search_sizer)
         )
         # search text box inside the collapsible pane
         self.search_panel.SetSizer(search_sizer)
@@ -226,8 +226,7 @@ class FileExplorer(wx.Frame):
     def on_copy_as_path(self, _: wx.CommandEvent):
         af_paths = self.get_selected_paths()
         str_paths = [
-            str(self.current_dir / f.name)
-                .replace(CONFIG.AF_URL, CONFIG.AF_PRETTY_URL)
+            str(self.current_dir / f.name).replace(CONFIG.AF_URL, CONFIG.AF_PRETTY_URL)
             for f in af_paths
         ]
         clipboard_str = "\n".join(str_paths)
@@ -249,8 +248,7 @@ class FileExplorer(wx.Frame):
         rows = ["File Name\tSize\tModified Date\tDate Updated\tModified By\tSHA256"]
         rows += [
             f"{item.name}\t{item.size}\t{item.modified}\t{item.updated}\t{item.modified_by}\t{item.sha256}"
-            for item
-            in af_paths
+            for item in af_paths
         ]
         clipboard_str = "\n".join(rows)
         if wx.TheClipboard.Open():
@@ -309,10 +307,11 @@ class FileExplorer(wx.Frame):
         if result == wx.DragCopy:
             pass
         elif result == wx.DragMove:
-            # I should delete the files...
-            for path in af_paths:
-                path.unlink(missing_ok=True)
-            self.load_directory()
+            # I should **NOT** delete the files...
+            # for path in af_paths:
+            #    path.unlink(missing_ok=True)
+            # self.load_directory(paths)
+            pass
 
     def on_up(self, event):
         """Navigate to parent directory"""
@@ -410,7 +409,7 @@ class FileExplorer(wx.Frame):
         openDirDialog = wx.DirDialog(
             None,
             message="Choose file(s) to upload to Artifactory",
-            style=wx.FLP_OPEN | wx.FLP_FILE_MUST_EXIST | wx.FD_MULTIPLE 
+            style=wx.FLP_OPEN | wx.FLP_FILE_MUST_EXIST | wx.FD_MULTIPLE,
         )
         openDirDialog.ShowModal()
         if not openDirDialog.Paths:
@@ -420,10 +419,11 @@ class FileExplorer(wx.Frame):
         files_to_download = self.get_selected_paths()
         local_paths = [
             self._download_file(
-                file_conn = self.current_dir / path.name,
-                open = False,
-                output_path = output_path
-            ) for path in files_to_download
+                file_conn=self.current_dir / path.name,
+                open=False,
+                output_path=output_path,
+            )
+            for path in files_to_download
         ]
         telemetry.log(f"Downloaded - {len(local_paths)}")
         wx.MessageBox(
@@ -459,7 +459,7 @@ class FileExplorer(wx.Frame):
             None,
             message="Choose file(s) to upload to Artifactory",
             wildcard="All files (*.*)|*.*",
-            style=wx.FLP_OPEN | wx.FLP_FILE_MUST_EXIST | wx.FD_MULTIPLE 
+            style=wx.FLP_OPEN | wx.FLP_FILE_MUST_EXIST | wx.FD_MULTIPLE,
         )
         openFileDialog.ShowModal()
         files = [Path(path) for path in openFileDialog.Paths]
@@ -786,15 +786,17 @@ class FileDropTarget(wx.FileDropTarget):
 
     def OnDropFiles(self, x, y, filenames):
         """Handle files dropped into the window"""
-        errors = file_handler.upload_formatted_files(
+        upload_status = file_handler.upload_formatted_files(
             [Path(f) for f in filenames], self.window.current_dir
         )
-        if errors:
+        if upload_status["errors"]:
             wx.MessageBox(
-                "Errors occurred while copying:\n" + "\n".join(errors),
+                "Errors occurred while copying:\n" + "\n".join(upload_status["errors"]),
                 "Error",
                 wx.OK | wx.ICON_ERROR,
             )
-        self.window.load_directory()
+        self.window.load_directory(
+            files_to_highlight=upload_status["success"], add_to_back_queue=False
+        )
         telemetry.log(f"Files uploaded - {len(filenames)}")
         return True

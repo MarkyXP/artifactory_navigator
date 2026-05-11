@@ -43,21 +43,51 @@ jobs:
           echo "VERSION = `"${{ github.ref_name }}`"" >> .env
 
       # --------------------------------------------------------------
-      # 5️⃣ Build the Executable
+      # 5️⃣ Build the Base Executable
       # --------------------------------------------------------------
-      - name: Build Executable
+      - name: Build Base Executable
         run: |
           uv run pyinstaller pyinstaller.spec
           dir dist
 
       # --------------------------------------------------------------
-      # 6️⃣ Upload the Executable Artifact
+      # 6️⃣ Create Portable ZIP
       # --------------------------------------------------------------
-      - name: Upload artifact
+      - name: Create Portable ZIP
+        run: |
+          if (-not (Test-Path dist_portable)) { New-Item -ItemType Directory -Path dist_portable }
+          Compress-Archive -Path dist/* -DestinationPath dist_portable/Artifactory_Navigator_Portable.zip -Force
+          dir dist_portable
+
+      # --------------------------------------------------------------
+      # 7️⃣ Install Inno Setup
+      # --------------------------------------------------------------
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup -y
+
+      # --------------------------------------------------------------
+      # 8️⃣ Build Installer
+      # --------------------------------------------------------------
+      - name: Build Installer
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\iscc.exe" /DAppVersion="${{ github.ref_name }}" installer.iss
+          dir Output
+
+      # --------------------------------------------------------------
+      # 9️⃣ Upload Build Artifacts
+      # --------------------------------------------------------------
+      - name: Upload Portable Executable
         uses: actions/upload-artifact@v4
         with:
-          name: Windows-exe
-          path: dist/*
+          name: Portable-exe
+          path: dist_portable/*
+
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Installer
+          path: Output/*
 
   release:
     needs: build
@@ -65,22 +95,24 @@ jobs:
 
     steps:
       # --------------------------------------------------------------
-      # 1️⃣ Download the Build Executable Artifact
+      # 1️⃣ Download Build Artifacts
       # --------------------------------------------------------------
-      - name: Download build artifact
+      - name: Download Portable Executable
         uses: actions/download-artifact@v4
         with:
-          name: Windows-exe
-          path: dist
+          name: Portable-exe
+          path: release_files
+
+      - name: Download Installer
+        uses: actions/download-artifact@v4
+        with:
+          name: Installer
+          path: release_files
 
       # --------------------------------------------------------------
-      # 2️⃣ Create a Release
+      # 2️⃣ Create Release
       # --------------------------------------------------------------
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
-          # tag_name: ${{ github.ref_name }}
-          # name: Release ${{ github.ref_name }}
-        # env:
-        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: release_files/*

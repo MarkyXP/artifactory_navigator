@@ -24,34 +24,40 @@ STANDARD_PAGE_SIZES = (
     (148, 210, "A5"),
 )
 
-def _regenerate_name_for_boms(filename : str) -> str:
+
+def _regenerate_name_for_boms(filename: str) -> str:
     if not filename.lower().startswith("bill-of-materials"):
         return filename
     *_, bomno = filename.split("-")
     return bomno
-        
 
-def _regenerate_name_for_periods(filename : str) -> str:
+
+def _regenerate_name_for_periods(filename: str) -> str:
     return re.sub(r"[^a-zA-Z0-9\-]+", "_", filename)
 
-def _is_dmr_or_dhfr(file : pathlib.Path) -> bool:
+
+def _is_dmr_or_dhfr(file: pathlib.Path) -> bool:
     doc_no, _, _, _ = get_doc_no(file.name)
     return len(doc_no) > 0
+
 
 def _is_zip(path: pathlib.Path | str):
     if isinstance(path, pathlib.Path):
         path = path.as_posix()
     return path.lower().endswith(".zip")
 
+
 def _is_pdf(path: pathlib.Path | str):
     if isinstance(path, pathlib.Path):
         path = path.as_posix()
     return path.lower().endswith(".pdf")
 
+
 def _is_complete_w_ds(path: pathlib.Path | str):
     if isinstance(path, str):
         path = pathlib.Path(path)
     return path.name.lower().startswith("complete_with_docusign")
+
 
 def unzip(src: pathlib.Path | str) -> List[pathlib.Path]:
     if isinstance(src, str):
@@ -65,14 +71,11 @@ def unzip(src: pathlib.Path | str) -> List[pathlib.Path]:
     unzipped_files = [f for f in o_path.glob("*")]
     return unzipped_files
 
-def extract_envelope_id(summary_file : pathlib.Path) -> str | None:
+
+def extract_envelope_id(summary_file: pathlib.Path) -> str | None:
     with summary_file.open("rb") as f:
         content = f.read().decode(errors="ignore")
-    match = re.search(
-        r"envelopeid[_\-]?([a-zA-Z0-9]+)",
-        content,
-        re.IGNORECASE
-    )
+    match = re.search(r"envelopeid[_\-]?([a-zA-Z0-9]+)", content, re.IGNORECASE)
     if match:
         envelope_id_raw = match.group(1)
         if len(envelope_id_raw) != 32:
@@ -89,6 +92,7 @@ def extract_envelope_id(summary_file : pathlib.Path) -> str | None:
         return "-".join(chunks)
     return None
 
+
 def separate_docusign_combined_file(src: pathlib.Path | str) -> List[pathlib.Path]:
     if isinstance(src, str):
         src = pathlib.Path(src)
@@ -96,7 +100,9 @@ def separate_docusign_combined_file(src: pathlib.Path | str) -> List[pathlib.Pat
         return []
     if _is_pdf(src) and _is_complete_w_ds(src):
         # Rename to strip complete_with_docusign
-        new_name = re.sub(r"Complete_with_Docusign_*", "", src.name, flags=re.IGNORECASE)
+        new_name = re.sub(
+            r"Complete_with_Docusign_*", "", src.name, flags=re.IGNORECASE
+        )
         src = src.rename(src.with_name(new_name))
         return [src]
     if not (_is_zip(src) or _is_complete_w_ds(src)):
@@ -111,8 +117,8 @@ def separate_docusign_combined_file(src: pathlib.Path | str) -> List[pathlib.Pat
     """ - Note - we are not following this process on P5, so I'm just commenting it out to keep that project going"""
     """ - Rini/QA are discussing whether we want to keep this, or revert the QMS"""
     """ - Maybe I should make a config for this?"""
-    #envelope_id = extract_envelope_id(summary_file)
-    #if not envelope_id:
+    # envelope_id = extract_envelope_id(summary_file)
+    # if not envelope_id:
     #    return [src]
     # new_summ_path = summary_file.parent / f"DocuSign_{envelope_id}_Summary.pdf"
     # summary_file.rename(new_summ_path)
@@ -151,20 +157,22 @@ def get_clipboard_file_paths() -> List[pathlib.Path]:
 
 def upload_formatted_files(
     files: List[pathlib.Path], dest_folder: ArtifactoryPath
-) -> List[str]:
+) -> dict:
     """
     Unzips files that need to be unzipped, etc
-    returns any errors
+    returns success and errors
     """
+    ret_val = {"success": [], "errors": []}
     errors = []
     for filepath in files:
         try:
             split_files = separate_docusign_combined_file(filepath)
             for file in split_files:
                 deploy_file_w_params(dest_folder, file)
+                ret_val["success"].append(file.name)
         except Exception as e:
-            errors.append(f"{filepath.name}: {str(e)}")
-    return errors
+            ret_val["errors"].append(f"{filepath.name}: {str(e)}")
+    return ret_val
 
 
 def deploy_file_w_params(dest_folder: ArtifactoryPath, src_filepath: pathlib.Path):
@@ -258,17 +266,20 @@ def get_file_parameters(path: pathlib.Path) -> dict:
         parameters["is_zip"] = "True"
     return parameters
 
-def add_locations_to_clipboard(paths : List[pathlib.Path]):
+
+def add_locations_to_clipboard(paths: List[pathlib.Path]):
     """
     Takes a list of local paths and adds them to the windows clipboard, so they can be pasted
     """
-    local_path_strings = ", ".join([f'"{f.as_posix().replace("/","\\")}"' for f in paths])
-    ps_command = f'Set-Clipboard -LiteralPath {local_path_strings}'
+    local_path_strings = ", ".join(
+        [f'"{f.as_posix().replace("/","\\")}"' for f in paths]
+    )
+    ps_command = f"Set-Clipboard -LiteralPath {local_path_strings}"
     result = subprocess.run(
         ["powershell", "-NoProfile", "-Command", ps_command],
         capture_output=True,
         text=True,
-        creationflags=subprocess.CREATE_NO_WINDOW  # Windows-only flag to suppress window
+        creationflags=subprocess.CREATE_NO_WINDOW,  # Windows-only flag to suppress window
     )
     if result.returncode != 0:
         print("Error setting clipboard:", result.stderr)

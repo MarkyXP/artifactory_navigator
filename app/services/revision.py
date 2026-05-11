@@ -4,14 +4,15 @@ from typing import List, Tuple
 from requests import Session
 
 from app.core.config import CONFIG
+
 # from app.core.tools import run_in_background
 from app.models.revision import ReVision_Response
 
 _session = Session()
 _dhfr_regex = re.compile(r"(DHFR\.\d{4,5}(?:\.\d{4})?)\.([A-Z]\d{2})")
 _dmr_regex = re.compile(r"([A-Z]{0,2}\d{2,4}\.\d{4}\.\d{3})\.?([A-Z]{0,2}\d{2})")
-_oem_regex = re.compile(r"(OEM\d{2,5})\.(\d{1,2})")
-_lbs_oem_regex = re.compile(r"(LBS\d{6})\.(\d{2})")
+_oem_regex = re.compile(r"(OEM\d{2,5})\.(\d{1,2})?")
+_lbs_oem_regex = re.compile(r"(LBS\d{6})\.(\d{2})?")
 
 
 def get_drawings_for_cr(cr_number: int) -> List[ReVision_Response]:
@@ -42,6 +43,7 @@ def get_doc_no(filename: str) -> Tuple[str, str, str, str]:
     """
     Args:
      - filename : e.g. '21_5901_130_A01_BOND_Mainboard_BOM.zip'
+                  e.g. 'DHFR_12345_A01_091_5591_130_DDD.PDF'
     Returns:
      - doc_no  : e.g. "21.5901.130"
      - doc_rev : e.g. "A01"
@@ -55,10 +57,10 @@ def get_doc_no(filename: str) -> Tuple[str, str, str, str]:
     # Look for DMR #s
     name_alphanum_raw = re.sub(r"[^A-Z0-9]", r".", stem.upper())
     name_alphanum = re.sub(r"\.+", r".", name_alphanum_raw)
-    dhfr = re.findall(_dhfr_regex, name_alphanum)
-    dmr = re.findall(_dmr_regex, name_alphanum)
-    oem = re.findall(_oem_regex, name_alphanum)
-    lbs_oem = re.findall(_lbs_oem_regex, name_alphanum)
+    dhfr = _dhfr_regex.findall(name_alphanum)
+    dmr = _dmr_regex.findall(name_alphanum)
+    oem = _oem_regex.findall(name_alphanum)
+    lbs_oem = _lbs_oem_regex.findall(name_alphanum)
     if dhfr:
         doc_no, doc_rev = dhfr[0]
         name_preamble = f"{doc_no}.+?{doc_rev}"
@@ -78,4 +80,4 @@ def get_doc_no(filename: str) -> Tuple[str, str, str, str]:
     doc_title_raw = re.sub(name_preamble, "", stem, flags=re.IGNORECASE)
     doc_title_double_spaces = re.sub(r"[^a-zA-Z0-9]", " ", doc_title_raw)
     doc_title = re.sub(r"\s+", " ", doc_title_double_spaces).strip()
-    return doc_no, doc_rev, doc_title, file_ext
+    return doc_no, doc_rev or "01", doc_title, file_ext

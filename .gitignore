@@ -1,14 +1,13 @@
-.venv*
+.venv/*
 .env
 __pycache__*
 *.cer
-.vscode*
-output*
-.Obs*
+.vscode/*
+output/*
 .python-version
-build*
-dist*
+.Obsolete/*
+dist/*
 .ruff_cache
 config.dev.json
 
-.Notebooks
+.Notebooks/*
