@@ -8,7 +8,7 @@ import wx
 from artifactory import ArtifactoryPath
 
 from app.core.config import CONFIG
-from app.core import telemetry
+from app.core import credentials, telemetry
 from app.gui import explorer_elements as elements
 from app.gui.go_to_cr import CRDialog
 from app.gui.shipping_tool import ShippingToolDialog
@@ -19,14 +19,18 @@ from app.services import file_handler
 
 
 class FileExplorer(wx.Frame):
-    def __init__(self, af_conn: ArtifactoryPath):
+    def __init__(self, af_conn: ArtifactoryPath, initial_repos: list[str] | None = None):
         title = f"{CONFIG.APP_NAME} | {CONFIG.VERSION}"
         super().__init__(None, title=title, size=(800, 600))
         icon = wx.Icon(CONFIG.APP_ICON_PATH, wx.BITMAP_TYPE_ICO)
         self.SetIcon(icon)
 
         self.conn = af_conn
-        self.current_dir = AF.open(self.conn, CONFIG.AF_URL)
+        # Login already had to call the repositories endpoint to verify the
+        # credentials, so reuse that response for the root view rather than
+        # paying for the same round trip a second time.
+        self._repos = list(initial_repos) if initial_repos else None
+        self.current_dir = self._restore_last_dir()
         self.path_backward_stack = deque()
         self.path_forward_stack = deque()
 
@@ -34,6 +38,28 @@ class FileExplorer(wx.Frame):
         self.file_list.SetDropTarget(FileDropTarget(self))
         self.items: List[AF_Result] = []
         self.load_directory()
+
+    def _restore_last_dir(self) -> ArtifactoryPath:
+        """
+        Reopens the folder the user last browsed, falling back to the root if
+        it can't be used.
+
+        The stored folder can be gone by the time we come back - a colleague may
+        have deleted or renamed it while the app was closed - so it is checked
+        before being trusted rather than assumed.
+        """
+        root = AF.open(self.conn, CONFIG.AF_URL)
+        last_dir = credentials.get_last_dir()
+        if not last_dir:
+            return root
+        candidate = AF.open(self.conn, f"{CONFIG.AF_BASE_URL.rstrip('/')}/{last_dir}")
+        try:
+            if candidate.is_dir():
+                return candidate
+        except Exception:
+            # Server unreachable, or the path is not readable by this user.
+            pass
+        return root
 
     def create_ui(self):
         # -------------------- splitter: Separate segments --------------------
@@ -136,11 +162,13 @@ class FileExplorer(wx.Frame):
             )
             self.selecting_offset = -1
         except Exception as e:
-            repo_list = self.conn.get_repositories()
+            # The root is detected by .repo raising IndexError (the root has no
+            # repo), so this except is the root branch - but it is left catching
+            # everything so that a folder which is temporarily unreachable still
+            # degrades to the root listing instead of taking the app down.
             self.dir_text.SetValue("/")
             self.items = [
-                AF_Repo(repo=repo.name, path=repo.name, name=repo.name)
-                for repo in repo_list
+                AF_Repo(repo=name, path=name, name=name) for name in self._get_repo_list()
             ]
             self.selecting_offset = 0
         self.items.sort(key=lambda f: f.type, reverse=True)
@@ -151,7 +179,45 @@ class FileExplorer(wx.Frame):
         # Add the back queue
         if add_to_back_queue:
             self.path_backward_stack.append(self.current_dir)
-    
+        # Remember where we are, so the next start reopens this folder
+        self._save_last_dir()
+
+    def _get_repo_list(self) -> list[str]:
+        """
+        Names of the repositories, reusing the list login already fetched.
+
+        Falls back to asking Artifactory if there isn't one, which is the case
+        when the app was started without going through login.
+        """
+        if self._repos is None:
+            self._repos = [repo.name for repo in self.conn.get_repositories(lazy=True)]
+        return self._repos
+
+    def _save_last_dir(self) -> None:
+        """
+        Stores the open folder relative to the Artifactory base (e.g.
+        "artifactory/myrepo/some/folder") so it can be reopened next time.
+
+        The root isn't worth remembering - it is where the app starts anyway.
+        path_in_repo deliberately excludes the repository, so it has to be put
+        back in front of it here or the path would reopen one level too deep.
+        Stored relative to the Artifactory base rather than as a full URL so a
+        change of server doesn't leave a stale hostname behind.
+        """
+        try:
+            repo = self.current_dir.repo
+        except IndexError:
+            return  # At the root
+        # CONFIG.AF_URL is an absolute URL, so the bit to keep is what follows
+        # the base.
+        af_root = CONFIG.AF_URL.replace(CONFIG.AF_BASE_URL.rstrip("/"), "", 1).strip("/")
+        try:
+            credentials.set_last_dir(f"{af_root}/{repo}{self.current_dir.path_in_repo}")
+        except Exception:
+            # Remembering the last folder is a convenience, never a reason to
+            # interrupt the user over a failed write.
+            pass
+
     def render_filelist(self, files_to_highlight : list[str] = ()):
         # Clear the files
         self.file_list.DeleteAllItems()

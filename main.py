@@ -35,21 +35,23 @@ app = wx.App(False)
 # ------------------------------------------------------------------
 #  Login (or Auto-login)
 # ------------------------------------------------------------------
-conn = login.GetAFConnection(app)
+login_result = login.GetAFConnection(app)
 # User cancelled logging in
-if not conn:
+if not login_result:
     import sys
     sys.exit()
-    
+
 # ------------------------------------------------------------------
 #  Run the main app
 # ------------------------------------------------------------------
 try:
     # Start the background job to get DST config
-    azure_storage.AF_SESSION = conn
+    azure_storage.AF_SESSION = login_result.conn
     azure_storage.get_azure_details.start()
     # Run the main app
-    explorer.Run(app, conn)
+    # The repo list came back with the login, so the root view doesn't have to
+    # ask for it again
+    explorer.Run(app, login_result.conn, initial_repos=login_result.repos)
 finally:
     app.ExitMainLoop()
     shutil.rmtree(CONFIG.STORE_TEMPFILES_PATH.as_posix(), ignore_errors=True)

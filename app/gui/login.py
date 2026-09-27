@@ -1,6 +1,7 @@
 import wx
 
 from app.core.config import CONFIG
+from app.models.af_search_results import AF_Login_Error
 
 
 class LoginDialog(wx.Dialog):
@@ -63,13 +64,13 @@ class LoginDialog(wx.Dialog):
     def on_login(self, event):
         username = self.user_text.GetValue()
         password = self.pass_text.GetValue()
-        conn = self.test_af_creds(username, password)
-        if isinstance(conn, str):
-            wx.MessageBox(conn, "Error", wx.OK | wx.ICON_ERROR)
+        result = self.test_af_creds(username, password)
+        if isinstance(result, AF_Login_Error):
+            wx.MessageBox(result.message, "Error", wx.OK | wx.ICON_ERROR)
         else:
             remember_me = self.remember_checkbox.GetValue()
             # Close up
-            self.callback_on_complete(username, password, remember_me, conn)
+            self.callback_on_complete(username, password, remember_me, result)
             self.Destroy()
 
     def on_cancel(self, event):

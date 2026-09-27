@@ -99,3 +99,24 @@ def set_password(pw: str) -> None:
     store = _get_store()
     store["pass"] = pw
     _save_store(store)
+
+
+def get_last_dir() -> str:
+    """
+    Gets the Artifactory relative folder the user last had open
+    (e.g. "artifactory/myrepo/some/folder"), or "" if there isn't one.
+
+    Stored relative to the Artifactory base so it survives a change of server.
+    """
+    store = _get_store()
+    return store.get("last_dir", "")
+
+
+def set_last_dir(path: str) -> None:
+    """
+    Saves the Artifactory relative folder the user last had open, so the app
+    can reopen it on the next start instead of going back to the root.
+    """
+    store = _get_store()
+    store["last_dir"] = path
+    _save_store(store)
