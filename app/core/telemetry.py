@@ -1,69 +1,72 @@
-import os
-import uuid
-import warnings
+"""
+Local application logging.
 
-from azure.cosmos import CosmosClient
-from requests import Session
+Events are written to disk as newline delimited JSON, one file per day, and files
+older than a week are pruned. Nothing is sent off the machine.
+"""
+
+import uuid
+from pathlib import Path
+
+from loguru import logger
 
 from app.core.config import CONFIG
-from app.core.tools import run_in_background
 
+LOG_DIR = CONFIG.STORE_LOCATION_PATH.parent / "logs"
+
+_session_id = str(uuid.uuid4())
 _disable_logging = False
-_auth_acquired = False
-try:
-    _client = CosmosClient(
-        url=CONFIG.AZURE_COSMOS_ENDPOINT,
-        credential=CONFIG.AZURE_COSMOS_KEY,
-    )
-    _session = Session()
-    _client.session = _session
 
-    _database = _client.get_database_client(CONFIG.AZURE_COSMOS_DATABASE_ID)
-    _container = _database.get_container_client(CONFIG.AZURE_COSMOS_CONTAINER_ID)
-    _session_id = str(uuid.uuid4())
-    _msg_count = 0
-except Exception as _:
+
+def add_sink(log_dir: Path = LOG_DIR, rotation="1 day") -> int:
+    """
+    Attach the daily JSON file sink, returning the id needed to remove it again.
+    """
+    log_dir.mkdir(parents=True, exist_ok=True)
+    return logger.add(
+        # The {time} token is what makes retention work. loguru derives the
+        # retention globs from this string: with a literal app_2026-09-27.log it
+        # only ever looks for files under that one stem, so yesterday's and last
+        # week's files are invisible to it and never pruned. Left as a token, it
+        # globs app_*.log, and the name is still re-evaluated on each rotation,
+        # so each day's file is named for its dateline.
+        log_dir / "app_{time:YYYY-MM-DD}.log",
+        rotation=rotation,
+        retention="1 week",
+        serialize=True,
+        # Not cosmetic. This defaults to True, which appends the *values of local
+        # variables* to exception records. Login holds set_pw / store_pw in local
+        # scope, so the default would write plaintext passwords to the log file.
+        diagnose=False,
+        # Writes are queued and flushed by a background thread, so a call site
+        # never waits on the disk.
+        enqueue=True,
+    )
+
+
+try:
+    # Drop loguru's default stderr sink. This app ships windowed (no console),
+    # it was never chatty, and the file sink is the only destination wanted.
+    logger.remove()
+    add_sink()
+except Exception:
+    # Logging failed for some reason, just disable it so it doesn't cause delays
     _disable_logging = True
 
 
-def set_auth(username: str, pw: str):
-    """
-    Store the users credentials to get through the
-    LBS firewall to do my logging.
-    """
-    if _disable_logging:
-        return
-    global _auth_acquired
-    _session.auth = (username, pw)
-    _auth_acquired = True
-
-
-@run_in_background
 def log(msg: str):
     """
-    Kicks off a background thread to upload the message to the Azure telemetry service
+    Record an event against today's log file. Never raises - a logging failure must
+    not break the GUI or add latency to the caller.
     """
-    global _msg_count, _disable_logging, _auth_acquired
+    global _disable_logging
     if _disable_logging:
         return
-    if not _auth_acquired:
-        return
     try:
-        # Note that it doesn't like using my cert so I'm using a requests
-        # session - supressing the warning that the azure client doesn't
-        # also have the cert.
-        with warnings.catch_warnings(action="ignore"):
-            _container.upsert_item(
-                {
-                    "id": _session_id + "_" + str(_msg_count),
-                    "src": "LBS_Artifactory_Navigator",
-                    "app_version" : CONFIG.VERSION,
-                    "session_id": _session_id,
-                    "user" : os.getlogin(),
-                    "msg": msg,
-                }
-            )
-    except Exception as _:
-        # Logging failed for some reason, just disable it so it doesn't cause timeout delays
+        # Bound via bind, not logger.info(..., **kwargs) - loguru consumes a
+        # literal "extra" kwarg, which would silently shadow the record.
+        logger.bind(
+            session_id=_session_id, app_version=CONFIG.VERSION
+        ).info(msg)
+    except Exception:
         _disable_logging = True
-    _msg_count += 1

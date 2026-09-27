@@ -35,7 +35,6 @@ CONFIG = _Config(
     **config_dict,
     APP_ICON_PATH=os.path.join(ICON_FOLDER_PATH, config_dict["APP_ICON_NAME"]),
     APP_SECRET=os.getenv("APP_SECRET"),
-    AZURE_COSMOS_KEY=os.getenv("AZURE_COSMOS_KEY"),
     VERSION=os.getenv("VERSION", f"DEBUG-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}-{os.getlogin()}"),
     ICON_LOCATION=ICON_FOLDER_PATH,
     SHIPPING_TOOL_EMAIL_BODY_LOCATION=resource_path("app/services/email_body.html"),

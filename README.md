@@ -87,7 +87,7 @@ When AF Navigator is in a project folder (i.e. the folder has a 5 digit number i
 
 <div class="page"/>
 
-## Privacy & Telemetry:
+## Privacy & Logging:
  - The users password is encrypted using Fernet
    - This secret is not included in this repo, ideally if you need to release a new copy of this app and you DON'T have the key, well, you should generate a new one, and the user will have to re-enter their password
    ```python
@@ -95,20 +95,21 @@ When AF Navigator is in a project folder (i.e. the folder has a 5 digit number i
     Fernet.generate_key()
    ```
    - And put this new key in .env file (`APP_SECRET="22...="`)
- - Note that this software does track usage in a a way that tried to be compliant with GDPR, this means:
-    - No personally identifiable information is collected, or any information that could be used to track back to a user or group of users (e.g. user name, computer name, ip address, etc)
- - The information collected is intended to create justification for the time spent working on LBS AF Navigator, for example if 2hours is being saved per week using this tool it may be used as justification that more time should be spent maintaining and upgrading it.
- - The information collected is:
+ - **Nothing is collected and nothing leaves your machine.** There is no telemetry, and no outbound call is made to log anything. If this app is removed, there is no activity record to delete from anywhere else.
+ - Usage is recorded to a local log file so you can see what the app has done on your own machine:
+    - Location: `%LocalAppData%\Artifactory_Navigator\logs\app_YYYY-MM-DD.log`
+    - Format: one JSON object per line, e.g. `{"text": "Files uploaded - 3", "record": {"time": "..."}, "extra": {"session_id": "...", "app_version": "..."}}`
+    - One file per day, and anything older than a week is deleted automatically
+    - Delete the `logs` folder at any time to clear it
+ - The events recorded are:
     - When a user logs in, and whether during login the user entered their own credentials or used saved credentials
     - If a file is uploaded, and how many
     - If a file is downloaded, and how many
     - If a file or folder is deleted, and how many
     - If a folder is created
     - If a file is renamed
-
-In the interest of full disclosure, the following is a sample screenshot of an actual log, with the information by collected by LBS AF Navigator highlighted
-
-![Logs_Preview](Assets/LogsPreview.png)
+ - The log records the app version and a random per-run session ID so entries from a single run can be told apart. Your username, computer name and IP address are **not** recorded.
+   - The one thing to be aware of is that a couple of events embed detail, not just a count - a ReVision report logs the report title, the Document Shipping Tool logs the file list you selected, and a failed DST email logs the traceback. These are local only, and the traceback path is the usual `%TEMP%` one the app already creates.
 
 <div class="page"/>
 
@@ -124,10 +125,9 @@ I ended up settling on Siemens because it has a retro feel to use, and it feels 
 <div class="page"/>
 
 ## Building application
-Note: I have three secrets that I don't want to commit anywhere public:
+Note: I have two secrets that I don't want to commit anywhere public:
 1. The Key to access the users credentials
-2. The Key to access the Azure logs
-3. The Key to access the Azure Shipping Tool blobs
+2. The Key to access the Azure Shipping Tool blobs
 
 These will be stored in Github Secrets, when building the application these should be put in a folder called `.env` in the root directory.
 

@@ -8,7 +8,7 @@ a = Analysis(
         ('app/services/email_body.html', 'app/services/'),
         ('.env', '.')
     ],
-    hiddenimports=['azure.storage.blob'],
+    hiddenimports=['azure.storage.blob', 'win32_setctime'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

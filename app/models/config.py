@@ -12,10 +12,6 @@ class Config:
     AF_BASE_URL : str
     AF_URL: str
     AF_PRETTY_URL: str
-    AZURE_COSMOS_ENDPOINT: str
-    AZURE_COSMOS_KEY: str
-    AZURE_COSMOS_DATABASE_ID: str
-    AZURE_COSMOS_CONTAINER_ID: str
     AZURE_DST_SETTINGS: str
     STORE_LOCATION: str
     RELEASE_LOCATION : str

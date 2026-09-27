@@ -3,7 +3,7 @@ python-dotenv       # Loading app secrets
 cryptography        # Storing user creds
 requests            # Used to add cert to AF
 dohq-artifactory    # Talking to AF
-azure-cosmos        # Logging
+loguru              # Logging
 # PyMuPDF           # Analyzing PDFs
 pywin32             # Generating emails
 azure.storage.blob  # Uploading to the Document Shipping Tool
