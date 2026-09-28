@@ -1,13 +1,9 @@
 {
     "APP_NAME" : "LBS Artifactory Navigator",
     "APP_ICON_NAME" : "LBS_AF_Logo.ico",
-    "STORE_LOCATION" : "~/AppData/Local/Artifactory_Navigator/creds.json",
+    "STORE_LOCATION" : "~/AppData/Local/Artifactory_Navigator",
     "AF_BASE_URL" : "https://aumel-artifactory.leicabio.com/",
     "AF_URL" : "artifactory",
     "AF_PRETTY_URL" : "ui/repos/tree/General",
-    "AZURE_COSMOS_ENDPOINT" : "https://mark.documents.azure.com:443/",
-    "AZURE_COSMOS_DATABASE_ID" : "Logs",
-    "AZURE_COSMOS_CONTAINER_ID" : "All",
-    "AZURE_DST_SETTINGS" : "artifactory/ddc-ops-prod-mel/Azure/DSTSettings.json",
     "RELEASE_LOCATION" : "\\\\bedrock\\abcl\\VBS Workgroups\\Engineering\\Tools\\Artifactory Navigator\\"
 }

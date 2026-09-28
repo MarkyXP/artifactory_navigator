@@ -24,6 +24,7 @@ check_new_version.check_for_updates()
 #  Set App ID
 # ------------------------------------------------------------------
 from ctypes import windll
+
 app_id = "65453D83-C0FC-46A8-BA56-75DAB289695F"
 windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
 
@@ -39,15 +40,15 @@ conn = login.GetAFConnection(app)
 # User cancelled logging in
 if not conn:
     import sys
+
     sys.exit()
-    
+
 # ------------------------------------------------------------------
 #  Run the main app
 # ------------------------------------------------------------------
 try:
     # Start the background job to get DST config
     azure_storage.AF_SESSION = conn
-    azure_storage.get_azure_details.start()
     # Run the main app
     explorer.Run(app, conn)
 finally:
