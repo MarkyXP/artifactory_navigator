@@ -48,7 +48,6 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "dist\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Config doesn't ignore version - Keep old version
 Source: "dist\config.json"; DestDir: "{app}";
-Source: "dist\DSTFile"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExeName}"
