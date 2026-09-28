@@ -18,7 +18,7 @@ def _test_af_creds(uname: str, pw: str) -> ArtifactoryPath | None:
     """
     conn = get_af_conn(uname, pw)
     try:
-        conn.get_repositories()
+        conn.get_repositories(lazy=True)
     # Bad credentials
     except dohq_artifactory.exception.ArtifactoryException as e:
         # TODO: I SHOULD RETURN THE ERROR

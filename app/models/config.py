@@ -9,17 +9,13 @@ class Config:
     APP_ICON_PATH: str
     APP_SECRET: str
     VERSION: str
-    AF_BASE_URL : str
+    AF_BASE_URL: str
     AF_URL: str
     AF_PRETTY_URL: str
-    AZURE_COSMOS_ENDPOINT: str
-    AZURE_COSMOS_KEY: str
-    AZURE_COSMOS_DATABASE_ID: str
-    AZURE_COSMOS_CONTAINER_ID: str
-    AZURE_DST_SETTINGS: str
+    DST_AZURE_KEY: str
+    DST_STORAGE_ACCOUNT_NAME: str
+    DST_STORAGE_ACCOUNT_CONTAINER: str
     STORE_LOCATION: str
-    RELEASE_LOCATION : str
-    STORE_LOCATION_PATH: Path | None = None
-    STORE_TEMPFILES_PATH: Path | None = None
+    RELEASE_LOCATION: str
     ICON_LOCATION: str | None = None
     SHIPPING_TOOL_EMAIL_BODY_LOCATION: str | None = None

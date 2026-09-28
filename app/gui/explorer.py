@@ -1,3 +1,4 @@
+import json
 import os
 import re
 from collections import deque
@@ -17,6 +18,29 @@ from app.services import af as AF
 from app.services import explorer as EXPLORER
 from app.services import file_handler
 
+_LAST_OPENED_FOLDER_PATH = (
+    Path(os.path.expanduser(CONFIG.STORE_LOCATION)) / "last_opened_folder.json"
+)
+
+
+def _read_last_opened_folder() -> str | None:
+    try:
+        with _LAST_OPENED_FOLDER_PATH.open(encoding="utf-8") as state_file:
+            state = json.load(state_file)
+        location = state.get("location")
+        return location if isinstance(location, str) and location else None
+    except (OSError, json.JSONDecodeError, AttributeError, TypeError):
+        return None
+
+
+def _save_last_opened_folder(location: str) -> None:
+    try:
+        _LAST_OPENED_FOLDER_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with _LAST_OPENED_FOLDER_PATH.open("w", encoding="utf-8") as state_file:
+            json.dump({"location": location}, state_file)
+    except OSError:
+        pass
+
 
 class FileExplorer(wx.Frame):
     def __init__(self, af_conn: ArtifactoryPath):
@@ -27,6 +51,9 @@ class FileExplorer(wx.Frame):
 
         self.conn = af_conn
         self.current_dir = AF.open(self.conn, CONFIG.AF_URL)
+        last_opened_folder = _read_last_opened_folder()
+        if last_opened_folder:
+            self.current_dir = AF.open(self.conn, last_opened_folder)
         self.path_backward_stack = deque()
         self.path_forward_stack = deque()
 
@@ -135,7 +162,9 @@ class FileExplorer(wx.Frame):
                 conn=self.conn, repo_name=self.current_dir.repo, folderpath=path_in_repo
             )
             self.selecting_offset = -1
-        except Exception as e:
+            _save_last_opened_folder(self.current_dir.as_posix())
+        except Exception:
+            self.current_dir = AF.open(self.conn, CONFIG.AF_URL)
             repo_list = self.conn.get_repositories()
             self.dir_text.SetValue("/")
             self.items = [
@@ -151,8 +180,8 @@ class FileExplorer(wx.Frame):
         # Add the back queue
         if add_to_back_queue:
             self.path_backward_stack.append(self.current_dir)
-    
-    def render_filelist(self, files_to_highlight : list[str] = ()):
+
+    def render_filelist(self, files_to_highlight: list[str] = ()):
         # Clear the files
         self.file_list.DeleteAllItems()
         # Add parent directory entry
@@ -385,27 +414,32 @@ class FileExplorer(wx.Frame):
     def on_item_activated(self, event):
         """Handle double-click on item"""
         self.on_open(event)
-    
+
     def on_column_sort(self, event):
         """Handle clicking on the column sort"""
         af_paths = self.get_selected_paths()
-        column_index = event.Column # 0-based index of the column
+        column_index = event.Column  # 0-based index of the column
         is_reversed = column_index == self.last_sorted_col
         match column_index:
-            case 0: # Name column
-                self.items.sort(key = lambda item: item.name, reverse = is_reversed)
-            case 1: # Type column (file / dir)
-                self.items.sort(key = lambda item: item.sha256 == None, reverse = is_reversed)
-            case 2: # Size column
-                self.items.sort(key = lambda item: item.size, reverse = is_reversed)
-            case 3: # Date Modifed column
-                self.items.sort(key = lambda item: item.modified, reverse = is_reversed)
-            case 4: # Date Created column
-                self.items.sort(key = lambda item: item.updated, reverse = is_reversed)
-            case 5: # Deployed by column
-                self.items.sort(key = lambda item: item.modified_by or item.created_by or "", reverse = is_reversed)
-            case 6: # SHA column
-                self.items.sort(key = lambda item: item.sha256, reverse = is_reversed)
+            case 0:  # Name column
+                self.items.sort(key=lambda item: item.name, reverse=is_reversed)
+            case 1:  # Type column (file / dir)
+                self.items.sort(
+                    key=lambda item: item.sha256 == None, reverse=is_reversed
+                )
+            case 2:  # Size column
+                self.items.sort(key=lambda item: item.size, reverse=is_reversed)
+            case 3:  # Date Modifed column
+                self.items.sort(key=lambda item: item.modified, reverse=is_reversed)
+            case 4:  # Date Created column
+                self.items.sort(key=lambda item: item.updated, reverse=is_reversed)
+            case 5:  # Deployed by column
+                self.items.sort(
+                    key=lambda item: item.modified_by or item.created_by or "",
+                    reverse=is_reversed,
+                )
+            case 6:  # SHA column
+                self.items.sort(key=lambda item: item.sha256, reverse=is_reversed)
         if is_reversed:
             self.last_sorted_col = -1
         else:

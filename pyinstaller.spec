@@ -41,4 +41,3 @@ exe = EXE(
 
 import shutil
 shutil.copyfile('app/core/config.json', '{0}/config.json'.format(DISTPATH))
-shutil.copyfile('app/services/DSTFile', '{0}/DSTFile'.format(DISTPATH))
