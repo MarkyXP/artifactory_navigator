@@ -38,7 +38,9 @@ jobs:
       - name: Generate .env
         run: |
           echo "APP_SECRET = `"${{ secrets.APP_SECRET }}`"" > .env
-          echo "AZURE_COSMOS_KEY = `"${{ secrets.AZURE_COSMOS_KEY }}`"" >> .env
+          echo "DST_AZURE_KEY = " `${{ secrets.DST_AZURE_KEY }}`"" > .env
+          echo "DST_STORAGE_ACCOUNT_NAME = " `${{ secrets.DST_STORAGE_ACCOUNT_NAME }}`"" > .env
+          echo "DST_STORAGE_ACCOUNT_CONTAINER = " `${{ secrets.DST_STORAGE_ACCOUNT_CONTAINER }}`"" > .env
           echo "CONFIG_PATH = config.json" >> .env
           echo "VERSION = `"${{ github.ref_name }}`"" >> .env
 
